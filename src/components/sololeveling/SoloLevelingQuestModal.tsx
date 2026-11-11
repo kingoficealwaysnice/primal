@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../context/AppContext';
-import { db, getTodayDateString } from '../../db/database';
+import { getTodayDateString } from '../../db/database';
 import confetti from 'canvas-confetti';
-import { AlertCircle, X, Check, Flame, Clock, Award, ShieldAlert } from 'lucide-react';
+import { Info, X, Check, Clock, Award, ShieldAlert } from 'lucide-react';
 
 interface SoloLevelingQuestModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const { grantXP, userProfile } = useAppStore();
+  const { grantXP } = useAppStore();
 
   // Progress state for the iconic 4 Daily Quest goals
   const [pushups, setPushups] = useState<number>(() => {
@@ -22,15 +22,15 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
   });
   const [situps, setSitups] = useState<number>(() => {
     const saved = localStorage.getItem('sl_quest_situps');
-    return saved ? parseInt(saved, 10) : 40;
+    return saved ? parseInt(saved, 10) : 50;
   });
   const [squats, setSquats] = useState<number>(() => {
     const saved = localStorage.getItem('sl_quest_squats');
-    return saved ? parseInt(saved, 10) : 60;
+    return saved ? parseInt(saved, 10) : 50;
   });
   const [runningKm, setRunningKm] = useState<number>(() => {
     const saved = localStorage.getItem('sl_quest_running');
-    return saved ? parseFloat(saved) : 4.5;
+    return saved ? parseFloat(saved) : 5.0;
   });
 
   const [isCompleted, setIsCompleted] = useState<boolean>(() => {
@@ -100,8 +100,28 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
     saveProgress(pushups, situps, squats, next);
   };
 
+  const toggleComplete = (type: 'pushups' | 'situps' | 'squats' | 'running') => {
+    if (type === 'pushups') {
+      const next = pushups >= 100 ? 50 : 100;
+      setPushups(next);
+      saveProgress(next, situps, squats, runningKm);
+    } else if (type === 'situps') {
+      const next = situps >= 100 ? 50 : 100;
+      setSitups(next);
+      saveProgress(pushups, next, squats, runningKm);
+    } else if (type === 'squats') {
+      const next = squats >= 100 ? 50 : 100;
+      setSquats(next);
+      saveProgress(pushups, situps, next, runningKm);
+    } else if (type === 'running') {
+      const next = runningKm >= 5 ? (runningKm >= 10 ? 0 : 10) : 5;
+      setRunningKm(next);
+      saveProgress(pushups, situps, squats, next);
+    }
+  };
+
   const handleFinish = async () => {
-    if (pushups < 100 || situps < 100 || squats < 100 || runningKm < 10) {
+    if (pushups < 100 || situps < 100 || squats < 100 || runningKm < 5) {
       alert('WARNING: Quest goals incomplete! Fulfill all parameters or face the penalty zone.');
       return;
     }
@@ -113,222 +133,235 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
       particleCount: 180,
       spread: 90,
       origin: { y: 0.5 },
-      colors: ['#00D4FF', '#725CFF', '#27E58C']
+      colors: ['#00D4FF', '#725CFF', '#C084FC', '#27E58C']
     });
 
-    await grantXP(700, 'Solo Leveling Daily Quest: Strength Training Completed');
+    await grantXP(700, 'Solo Leveling Daily Quest: Strange Training Completed');
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xl animate-in fade-in duration-200">
-      {/* Background Dark Fantasy Blue Energy Aura */}
-      <div className="absolute w-[95%] max-w-md h-[550px] bg-[#00D4FF]/10 rounded-[35px] blur-[70px] pointer-events-none" />
+      {/* Background Dark Fantasy Blue & Lilac Energy Aura */}
+      <div className="absolute w-[95%] max-w-md h-[550px] bg-[#A78BFA]/15 rounded-[35px] blur-[70px] pointer-events-none" />
 
-      {/* Holographic Window Container */}
-      <div className="relative w-full max-w-sm rounded-[28px] border-2 border-[#00D4FF] bg-[#080B14]/95 shadow-[0_0_50px_rgba(0,212,255,0.45)] p-5 text-[#F5F7FF] overflow-hidden">
-        {/* Sci-Fi Decorative Corner Brackets */}
-        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#00D4FF]" />
-        <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#00D4FF]" />
-        <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#00D4FF]" />
-        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#00D4FF]" />
+      {/* Holographic Window Container matching Screen 3 */}
+      <div className="relative w-full max-w-sm rounded-[24px] border border-[#A78BFA]/40 bg-[#140E26]/95 shadow-[0_0_50px_rgba(167,139,250,0.35),0_12px_40px_rgba(0,0,0,0.9)] p-5 text-[#F5F7FF] overflow-hidden">
+        {/* Subtle decorative edge lines */}
+        <div className="absolute inset-0 border border-white/5 rounded-[24px] pointer-events-none" />
 
-        {/* Top Header Box (Exact replica of Image 1 & 2) */}
-        <div className="flex items-center justify-between border-2 border-[#00D4FF]/80 rounded-xl px-4 py-2 bg-[#00D4FF]/10 shadow-[0_0_20px_rgba(0,212,255,0.25)]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-5 h-5 rounded-full border-2 border-[#00D4FF] flex items-center justify-center font-bold text-xs text-[#00D4FF]">
-              !
+        {/* Top Header Row: [ (i) | QUEST INFO ] and Close Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 border border-[#A78BFA]/50 rounded-lg px-3 py-1 bg-[#20163B]/60 shadow-[0_0_15px_rgba(167,139,250,0.2)]">
+            <div className="w-4 h-4 rounded-full border border-[#C084FC] flex items-center justify-center text-[10px] text-[#C084FC] font-bold">
+              i
             </div>
-            <h2 className="font-display font-extrabold text-sm sm:text-base tracking-[0.2em] text-[#00D4FF] uppercase text-glow-cyan">
+            <span className="font-cinzel text-xs font-bold tracking-[0.2em] text-[#F5F7FF] uppercase">
               QUEST INFO
-            </h2>
+            </span>
           </div>
+
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-[#00D4FF] hover:text-white transition-all"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9D94B8] hover:text-white hover:bg-white/10 transition-all"
+            aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Quest Subtitle */}
-        <div className="text-center my-3">
-          <p className="text-[11px] font-mono tracking-wider text-[#00D4FF] font-semibold">
-            [Daily Quest: Strength Training has arrived.]
+        {/* Subtitle: [Daily Quest: Strange Training has Arrived.] */}
+        <div className="text-center my-4">
+          <p className="text-xs font-sans text-[#E2D9F3] font-medium tracking-wide">
+            [Daily Quest: <span className="font-bold text-[#F5F7FF]">Strange Training has Arrived.</span>]
           </p>
-          <div className="mt-2 inline-block">
-            <span className="font-display font-black text-sm tracking-[0.3em] uppercase text-[#F5F7FF] border-b-2 border-[#00D4FF] pb-0.5 text-glow-cyan">
+
+          <div className="mt-3 flex flex-col items-center">
+            <h3 className="font-cinzel text-sm sm:text-base font-bold tracking-[0.3em] uppercase text-[#F5F7FF] drop-shadow-[0_0_10px_rgba(192,132,252,0.8)]">
               GOAL
-            </span>
+            </h3>
+            <div className="w-12 h-0.5 bg-gradient-to-r from-transparent via-[#C084FC] to-transparent mt-1 shadow-[0_0_8px_#C084FC]" />
           </div>
         </div>
 
         {/* 4 Iconic Goals: Push-ups, Sit-ups, Squats, Running */}
-        <div className="space-y-2.5 my-3 text-xs font-mono">
+        <div className="space-y-3 my-4 text-xs font-mono">
           {/* Push-ups */}
-          <div className="p-2.5 rounded-xl border border-[#00D4FF]/30 bg-[#101626]/80 flex items-center justify-between shadow-[0_0_12px_rgba(0,212,255,0.1)]">
-            <span className="font-display font-bold text-[#F5F7FF] tracking-wider">
-              Push-ups
-            </span>
+          <div className="p-2.5 rounded-xl border border-white/5 bg-[#1C1435]/80 flex items-center justify-between hover:border-[#C084FC]/30 transition-all">
             <div className="flex items-center gap-2">
-              <span className={`font-mono font-bold ${pushups >= 100 ? 'text-[#27E58C]' : 'text-[#00D4FF]'}`}>
-                [{pushups}/100]
+              <span className="font-sans font-semibold text-sm text-[#F5F7FF]">
+                Push-ups
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className={`font-mono font-bold text-xs ${pushups >= 100 ? 'text-[#27E58C]' : 'text-[#C084FC]'}`}>
+                [{pushups} / 100]
               </span>
               <div className="flex gap-1">
                 <button
                   onClick={() => addPushups(5)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
+                  className="px-1.5 py-0.5 rounded bg-[#C084FC]/20 text-[#C084FC] text-[10px] font-bold hover:bg-[#C084FC] hover:text-black active:scale-90 transition-all"
                 >
                   +5
                 </button>
-                <button
-                  onClick={() => addPushups(10)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
-                >
-                  +10
-                </button>
               </div>
-              <div className={`w-4 h-4 rounded border flex items-center justify-center ${pushups >= 100 ? 'bg-[#27E58C] border-[#27E58C] text-black' : 'border-[#00D4FF]/40'}`}>
-                {pushups >= 100 && <Check className="w-3 h-3 stroke-[3]" />}
-              </div>
+              <button
+                onClick={() => toggleComplete('pushups')}
+                className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                  pushups >= 100
+                    ? 'bg-[#27E58C] border-[#27E58C] text-[#080B14]'
+                    : 'border-[#A78BFA]/50 bg-[#120E24] hover:border-[#C084FC]'
+                }`}
+              >
+                {pushups >= 100 && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </button>
             </div>
           </div>
 
           {/* Sit-ups */}
-          <div className="p-2.5 rounded-xl border border-[#00D4FF]/30 bg-[#101626]/80 flex items-center justify-between shadow-[0_0_12px_rgba(0,212,255,0.1)]">
-            <span className="font-display font-bold text-[#F5F7FF] tracking-wider">
-              Sit-ups
-            </span>
+          <div className="p-2.5 rounded-xl border border-white/5 bg-[#1C1435]/80 flex items-center justify-between hover:border-[#C084FC]/30 transition-all">
             <div className="flex items-center gap-2">
-              <span className={`font-mono font-bold ${situps >= 100 ? 'text-[#27E58C]' : 'text-[#00D4FF]'}`}>
-                [{situps}/100]
+              <span className="font-sans font-semibold text-sm text-[#F5F7FF]">
+                Sit-ups
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className={`font-mono font-bold text-xs ${situps >= 100 ? 'text-[#27E58C]' : 'text-[#C084FC]'}`}>
+                [{situps} / 100]
               </span>
               <div className="flex gap-1">
                 <button
                   onClick={() => addSitups(5)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
+                  className="px-1.5 py-0.5 rounded bg-[#C084FC]/20 text-[#C084FC] text-[10px] font-bold hover:bg-[#C084FC] hover:text-black active:scale-90 transition-all"
                 >
                   +5
                 </button>
-                <button
-                  onClick={() => addSitups(10)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
-                >
-                  +10
-                </button>
               </div>
-              <div className={`w-4 h-4 rounded border flex items-center justify-center ${situps >= 100 ? 'bg-[#27E58C] border-[#27E58C] text-black' : 'border-[#00D4FF]/40'}`}>
-                {situps >= 100 && <Check className="w-3 h-3 stroke-[3]" />}
-              </div>
+              <button
+                onClick={() => toggleComplete('situps')}
+                className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                  situps >= 100
+                    ? 'bg-[#27E58C] border-[#27E58C] text-[#080B14]'
+                    : 'border-[#A78BFA]/50 bg-[#120E24] hover:border-[#C084FC]'
+                }`}
+              >
+                {situps >= 100 && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </button>
             </div>
           </div>
 
           {/* Squats */}
-          <div className="p-2.5 rounded-xl border border-[#00D4FF]/30 bg-[#101626]/80 flex items-center justify-between shadow-[0_0_12px_rgba(0,212,255,0.1)]">
-            <span className="font-display font-bold text-[#F5F7FF] tracking-wider">
-              Squats
-            </span>
+          <div className="p-2.5 rounded-xl border border-white/5 bg-[#1C1435]/80 flex items-center justify-between hover:border-[#C084FC]/30 transition-all">
             <div className="flex items-center gap-2">
-              <span className={`font-mono font-bold ${squats >= 100 ? 'text-[#27E58C]' : 'text-[#00D4FF]'}`}>
-                [{squats}/100]
+              <span className="font-sans font-semibold text-sm text-[#F5F7FF]">
+                Squats
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className={`font-mono font-bold text-xs ${squats >= 100 ? 'text-[#27E58C]' : 'text-[#C084FC]'}`}>
+                [{squats} / 100]
               </span>
               <div className="flex gap-1">
                 <button
                   onClick={() => addSquats(5)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
+                  className="px-1.5 py-0.5 rounded bg-[#C084FC]/20 text-[#C084FC] text-[10px] font-bold hover:bg-[#C084FC] hover:text-black active:scale-90 transition-all"
                 >
                   +5
                 </button>
-                <button
-                  onClick={() => addSquats(10)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
-                >
-                  +10
-                </button>
               </div>
-              <div className={`w-4 h-4 rounded border flex items-center justify-center ${squats >= 100 ? 'bg-[#27E58C] border-[#27E58C] text-black' : 'border-[#00D4FF]/40'}`}>
-                {squats >= 100 && <Check className="w-3 h-3 stroke-[3]" />}
-              </div>
+              <button
+                onClick={() => toggleComplete('squats')}
+                className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                  squats >= 100
+                    ? 'bg-[#27E58C] border-[#27E58C] text-[#080B14]'
+                    : 'border-[#A78BFA]/50 bg-[#120E24] hover:border-[#C084FC]'
+                }`}
+              >
+                {squats >= 100 && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </button>
             </div>
           </div>
 
           {/* Running */}
-          <div className="p-2.5 rounded-xl border border-[#00D4FF]/30 bg-[#101626]/80 flex items-center justify-between shadow-[0_0_12px_rgba(0,212,255,0.1)]">
-            <span className="font-display font-bold text-[#F5F7FF] tracking-wider">
-              Running
-            </span>
+          <div className="p-2.5 rounded-xl border border-white/5 bg-[#1C1435]/80 flex items-center justify-between hover:border-[#C084FC]/30 transition-all">
             <div className="flex items-center gap-2">
-              <span className={`font-mono font-bold ${runningKm >= 10 ? 'text-[#27E58C]' : 'text-[#00D4FF]'}`}>
-                [{runningKm}/10km]
+              <span className="font-sans font-semibold text-sm text-[#F5F7FF]">
+                Running
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className={`font-mono font-bold text-xs ${runningKm >= 5 ? 'text-[#27E58C]' : 'text-[#C084FC]'}`}>
+                [{runningKm} / 5km]
               </span>
               <div className="flex gap-1">
                 <button
                   onClick={() => addRunning(0.5)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
+                  className="px-1.5 py-0.5 rounded bg-[#C084FC]/20 text-[#C084FC] text-[10px] font-bold hover:bg-[#C084FC] hover:text-black active:scale-90 transition-all"
                 >
                   +0.5
                 </button>
-                <button
-                  onClick={() => addRunning(1.0)}
-                  className="px-1.5 py-0.5 rounded bg-[#00D4FF]/20 border border-[#00D4FF]/40 text-[#00D4FF] text-[10px] font-bold hover:bg-[#00D4FF] hover:text-black active:scale-90"
-                >
-                  +1.0
-                </button>
               </div>
-              <div className={`w-4 h-4 rounded border flex items-center justify-center ${runningKm >= 10 ? 'bg-[#27E58C] border-[#27E58C] text-black' : 'border-[#00D4FF]/40'}`}>
-                {runningKm >= 10 && <Check className="w-3 h-3 stroke-[3]" />}
-              </div>
+              <button
+                onClick={() => toggleComplete('running')}
+                className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                  runningKm >= 5
+                    ? 'bg-[#27E58C] border-[#27E58C] text-[#080B14]'
+                    : 'border-[#A78BFA]/50 bg-[#120E24] hover:border-[#C084FC]'
+                }`}
+              >
+                {runningKm >= 5 && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Ominous Warning Section (Word for word from Solo Leveling) */}
-        <div className="my-3 p-2.5 rounded-xl bg-[#FF5263]/10 border border-[#FF5263]/40 text-center">
-          <p className="text-[10px] font-mono text-[#FF5263] leading-relaxed font-semibold">
-            WARNING: Failure to complete the daily quest will result in an appropriate penalty.
+        {/* Warning text matching Screen 3 */}
+        <div className="my-3 text-center px-2">
+          <p className="text-[11px] font-mono text-[#D8B4FE] leading-relaxed font-normal opacity-90 drop-shadow-[0_0_8px_rgba(216,180,254,0.3)]">
+            WARNING: Failure to complete the daily quest will result in an appreciate penalty.
           </p>
         </div>
 
-        {/* Reward & Countdown Timer Row */}
-        <div className="flex items-center justify-between text-xs font-mono py-1.5 border-t border-[#00D4FF]/20">
-          <div className="flex items-center gap-1 text-[#27E58C]">
-            <Award className="w-3.5 h-3.5" />
+        {/* Reward & Countdown Timer */}
+        <div className="flex items-center justify-between text-xs font-mono py-2 border-t border-[#A78BFA]/20">
+          <div className="flex items-center gap-1.5 text-[#27E58C]">
+            <Award className="w-4 h-4" />
             <span className="font-bold">Reward: 700 XP</span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-[#00D4FF]">
-            <Clock className="w-3.5 h-3.5 animate-spin" />
-            <span className="font-mono font-bold text-sm tracking-widest">{timeRemaining}</span>
+          <div className="flex items-center gap-1.5 text-[#C084FC]">
+            <Clock className="w-3.5 h-3.5" />
+            <span className="font-mono font-bold text-xs tracking-widest">{timeRemaining}</span>
           </div>
         </div>
 
         {/* Action Buttons Row */}
-        <div className="flex gap-2.5 mt-3 pt-2 border-t border-[#00D4FF]/20">
+        <div className="flex gap-2.5 mt-3 pt-2 border-t border-[#A78BFA]/20">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-[#00D4FF]/30 bg-[#101626] font-display font-semibold text-xs text-[#929DB5] hover:text-white uppercase tracking-wider active:scale-95 transition-all"
+            className="flex-1 py-2.5 rounded-xl border border-[#A78BFA]/30 bg-[#17112B] font-cinzel font-semibold text-xs text-[#9D94B8] hover:text-white uppercase tracking-wider active:scale-95 transition-all"
           >
             Dismiss
           </button>
 
           <button
             onClick={handleFinish}
-            className={`flex-1 py-2.5 rounded-xl border font-display font-bold text-xs uppercase tracking-wider active:scale-95 transition-all shadow-[0_0_20px_rgba(0,212,255,0.4)] ${
+            className={`flex-1 py-2.5 rounded-xl border font-cinzel font-bold text-xs uppercase tracking-wider active:scale-95 transition-all shadow-[0_0_20px_rgba(192,132,252,0.4)] ${
               isCompleted
                 ? 'bg-[#27E58C] border-[#27E58C] text-[#080B14]'
-                : 'bg-gradient-to-r from-[#00D4FF] to-[#725CFF] border-[#00D4FF] text-white hover:brightness-110'
+                : 'bg-gradient-to-r from-[#C084FC] via-[#A855F7] to-[#7C3AED] border-[#C084FC] text-white hover:brightness-110'
             }`}
           >
             {isCompleted ? 'CLAIMED ✓' : 'FINISH QUEST'}
           </button>
         </div>
 
-        {/* Test Penalty Mode Simulator Toggle */}
+        {/* Penalty Protocol Simulation Link */}
         <div className="mt-2 text-center">
           <button
             onClick={() => setShowPenaltyMode(!showPenaltyMode)}
-            className="text-[9px] text-[#FF5263] font-mono hover:underline"
+            className="text-[9px] text-[#FF5263] font-mono hover:underline opacity-80"
           >
             [Simulate Penalty Protocol Zone]
           </button>

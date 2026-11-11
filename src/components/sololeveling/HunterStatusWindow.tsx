@@ -199,3 +199,4 @@ export const HunterStatusWindow: React.FC = () => {
     </div>
   );
 };
+

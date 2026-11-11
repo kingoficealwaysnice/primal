@@ -184,54 +184,131 @@ export const OnboardingFlow: React.FC = () => {
     await saveUserProfile(profile);
   };
 
-  // STEP 0: Cinematic Startup Splash
+  // STEP 0: Cinematic Startup Splash (Exact visual match to Awaken screen)
   if (step === 0) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#080B14] flex flex-col items-center justify-between p-6 overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-[#725CFF]/15 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-[#00D4FF]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="fixed inset-0 z-50 bg-[#0B0814] flex flex-col justify-between p-6 overflow-hidden select-none">
+        {/* Atmospheric purple/violet background nebula glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#7C3AED]/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-80 h-80 bg-[#C084FC]/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#00D4FF]/10 rounded-full blur-[90px] pointer-events-none" />
 
-        <div className="pt-12 text-center">
-          <span className="text-[11px] font-display uppercase tracking-[0.3em] text-[#00D4FF] font-semibold animate-pulse">
-            [ SYSTEM PROTOCOL INITIALIZING ]
-          </span>
+        {/* Top Header: Stylized Runic Glyph + AWAKEN */}
+        <div className="pt-6 flex flex-col items-center justify-center relative z-10">
+          <div className="flex items-center gap-2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#C084FC] drop-shadow-[0_0_12px_rgba(192,132,252,0.8)]">
+              <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="url(#runeGrad)" />
+              <defs>
+                <linearGradient id="runeGrad" x1="3" y1="2" x2="21" y2="22">
+                  <stop stopColor="#E9D5FF" />
+                  <stop offset="0.5" stopColor="#C084FC" />
+                  <stop offset="1" stopColor="#7C3AED" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="font-cinzel font-bold text-base tracking-[0.35em] text-[#F5F7FF] drop-shadow-[0_0_10px_rgba(233,213,255,0.6)]">
+              AWAKEN
+            </span>
+          </div>
         </div>
 
-        <div className="text-center max-w-sm space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-[#725CFF] to-[#00D4FF] p-1 shadow-[0_0_35px_rgba(114,92,255,0.45)]">
-            <div className="w-full h-full bg-[#080B14] rounded-[22px] flex items-center justify-center">
-              <span className="font-display font-black text-4xl text-[#00D4FF]">P</span>
-            </div>
-          </div>
+        {/* Central Sung Jin-woo Inspired Anime Silhouette Artwork */}
+        <div className="relative flex-1 flex items-center justify-center my-2 max-w-sm mx-auto w-full">
+          <div className="relative w-72 h-84 flex items-center justify-center">
+            {/* Glowing aura rays behind character */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#7C3AED]/30 via-[#C084FC]/20 to-transparent rounded-full filter blur-2xl" />
 
-          <div className="space-y-2">
-            <h1 className="font-display font-extrabold text-3xl tracking-wider text-[#F5F7FF]">
-              PRIMAL <span className="text-[#00D4FF]">SYSTEM</span>
+            {/* Stylized Hunter Silhouette SVG with glowing eye */}
+            <svg viewBox="0 0 300 360" className="w-full h-full drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]">
+              <defs>
+                {/* Purple dark shadow aura */}
+                <radialGradient id="auraGlow" cx="50%" cy="40%" r="60%">
+                  <stop offset="0%" stopColor="#C084FC" stopOpacity="0.5" />
+                  <stop offset="60%" stopColor="#7C3AED" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="#0B0814" stopOpacity="0" />
+                </radialGradient>
+                {/* Eye flare filter */}
+                <filter id="eyeGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* Background ambient dark energy aura */}
+              <circle cx="150" cy="160" r="130" fill="url(#auraGlow)" />
+
+              {/* Shoulder & Coat Silhouette */}
+              <path
+                d="M60 360 C70 300 90 270 110 250 L125 210 L140 240 L160 240 L175 210 L190 250 C210 270 230 300 240 360 Z"
+                fill="#120E24"
+              />
+              <path
+                d="M90 360 C100 310 115 285 130 265 L145 235 L155 235 L170 265 C185 285 200 310 210 360 Z"
+                fill="#1A1435"
+              />
+
+              {/* Collar & Neck */}
+              <path d="M135 220 L150 245 L165 220 L160 180 L140 180 Z" fill="#201744" />
+              <polygon points="150,230 142,200 158,200" fill="#2D215E" />
+
+              {/* Jaw & Head Contour */}
+              <path
+                d="M125 150 C125 180 140 205 150 210 C160 205 175 180 175 150 Z"
+                fill="#1F183C"
+              />
+
+              {/* Spiky Anime Hair Outline (Solo Leveling / Jin-woo style) */}
+              <path
+                d="M115 155 C110 130 112 105 130 85 C140 70 160 70 175 80 C190 90 195 115 185 145 C195 130 200 110 195 90 C185 65 160 55 135 60 C110 65 95 95 105 135 C95 145 92 165 98 185 C108 175 114 165 115 155 Z"
+                fill="#120E24"
+              />
+              <path
+                d="M135 85 C145 75 165 75 175 88 C185 100 180 120 175 135 C170 115 160 100 145 95 Z"
+                fill="#271C50"
+              />
+              {/* Forehead hair bangs */}
+              <polygon points="135,115 145,145 148,125 155,150 160,128 168,142 165,115" fill="#150F2C" />
+
+              {/* The Iconic Glowing Purple/Lilac Left Eye with Radiant Flare Trail */}
+              <g filter="url(#eyeGlow)">
+                {/* Horizontal energy trail */}
+                <ellipse cx="162" cy="142" rx="20" ry="2" fill="#E9D5FF" opacity="0.8" />
+                <ellipse cx="162" cy="142" rx="10" ry="3.5" fill="#C084FC" />
+                <circle cx="160" cy="142" r="3.5" fill="#FFFFFF" />
+                {/* Upward curved energy wisp */}
+                <path d="M162 142 Q175 130 180 110 Q177 125 166 138 Z" fill="#C084FC" opacity="0.9" />
+              </g>
+
+              {/* Subtle face lighting */}
+              <path d="M152 142 L150 165 L145 168" stroke="#37276B" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Bottom Headline & Call To Action (Exact replica of Image Screen 1) */}
+        <div className="max-w-sm mx-auto w-full pb-4 relative z-10 text-center space-y-3">
+          <div className="space-y-0.5">
+            <h1 className="font-cinzel text-3xl sm:text-4xl leading-[1.15] font-black tracking-wider text-left pl-2">
+              <span className="text-[#F5F7FF] block">YOUR</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9D5FF] via-[#C084FC] to-[#A855F7] block drop-shadow-[0_0_20px_rgba(192,132,252,0.6)]">
+                AWAKENING
+              </span>
+              <span className="text-[#F5F7FF] block">BEGINS NOW!</span>
             </h1>
-            <p className="text-xs font-display uppercase tracking-widest text-[#929DB5]">
-              Rebuild Your Body. Reclaim Your Discipline.
+            <p className="text-xs text-[#A78BFA] font-sans text-left pl-2 pt-1 font-medium tracking-wide">
+              Walk your path. Take action. Conquer. Become a legend!
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#151D30]/80 border border-[#725CFF]/30 text-left space-y-2">
-            <p className="text-xs text-[#00D4FF] font-mono">[WELCOME, HUNTER.]</p>
-            <p className="text-xs text-[#F5F7FF] leading-relaxed">
-              Your real-life progression system has initialized. Every workout, healthy meal, walk, and discipline choice now awards XP and evolves your physical avatar.
-            </p>
-            <p className="text-[11px] text-[#27E58C] font-mono">[90-DAY AWAKENING PROTOCOL READY]</p>
-          </div>
-        </div>
-
-        <div className="w-full max-w-sm pb-8">
-          <Button
-            variant="cyan"
-            size="lg"
-            className="w-full font-bold tracking-widest text-sm shadow-[0_0_25px_rgba(0,212,255,0.35)]"
+          <button
             onClick={() => setStep(1)}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#C084FC] via-[#A855F7] to-[#9333EA] text-[#0B0814] font-display font-black text-sm tracking-widest uppercase hover:brightness-110 active:scale-95 transition-all shadow-[0_0_30px_rgba(192,132,252,0.45)] mt-3 flex items-center justify-center gap-2"
           >
-            INITIALIZE AWAKENING <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
+            Get Started <ChevronRight className="w-4 h-4 stroke-[3]" />
+          </button>
         </div>
       </div>
     );

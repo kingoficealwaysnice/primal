@@ -30,6 +30,8 @@ export default {
         sans: ['Inter', 'sans-serif'],
         display: ['Space Grotesk', 'sans-serif'],
         outfit: ['Outfit', 'sans-serif'],
+        cinzel: ['Cinzel', 'serif'],
+        cinzelDec: ['Cinzel Decorative', 'serif'],
       },
       boxShadow: {
         'glow-violet': '0 0 25px -5px rgba(114, 92, 255, 0.35)',
