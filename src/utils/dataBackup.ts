@@ -1,4 +1,5 @@
 import { db } from '../db/database';
+import { clearVaultSnapshot } from '../services/persistenceService';
 
 export async function exportAllData(): Promise<void> {
   const profile = await db.userProfile.toArray();
@@ -15,10 +16,12 @@ export async function exportAllData(): Promise<void> {
   const notifications = await db.notifications.toArray();
   const history = await db.exerciseHistory.toArray();
   const reports = await db.dailyReports.toArray();
+  const memories = await db.hunterMemories.toArray();
+  const google = await db.googleAuth.toArray();
 
   const backupPayload = {
     appName: 'PRIMAL SYSTEM',
-    version: '1.0.0',
+    version: '1.1.0',
     exportedAt: new Date().toISOString(),
     data: {
       profile,
@@ -34,7 +37,9 @@ export async function exportAllData(): Promise<void> {
       achievements,
       notifications,
       history,
-      reports
+      reports,
+      memories,
+      google
     }
   };
 
@@ -73,7 +78,9 @@ export async function importData(jsonString: string): Promise<void> {
     db.achievements,
     db.notifications,
     db.exerciseHistory,
-    db.dailyReports
+    db.dailyReports,
+    db.hunterMemories,
+    db.googleAuth
   ], async () => {
     if (data.profile) {
       await db.userProfile.clear();
@@ -131,10 +138,19 @@ export async function importData(jsonString: string): Promise<void> {
       await db.dailyReports.clear();
       await db.dailyReports.bulkAdd(data.reports);
     }
+    if (data.memories) {
+      await db.hunterMemories.clear();
+      await db.hunterMemories.bulkAdd(data.memories);
+    }
+    if (data.google) {
+      await db.googleAuth.clear();
+      await db.googleAuth.bulkAdd(data.google);
+    }
   });
 }
 
 export async function resetAllData(): Promise<void> {
+  clearVaultSnapshot();
   await db.userProfile.clear();
   await db.dailyQuests.clear();
   await db.mealEntries.clear();
@@ -150,5 +166,7 @@ export async function resetAllData(): Promise<void> {
   await db.notifications.clear();
   await db.exerciseHistory.clear();
   await db.dailyReports.clear();
+  await db.hunterMemories.clear();
+  await db.googleAuth.clear();
 }
 

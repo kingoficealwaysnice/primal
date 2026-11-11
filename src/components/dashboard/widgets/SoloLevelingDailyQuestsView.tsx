@@ -2,40 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../../context/AppContext';
 import { ChevronRight, Zap, Check, Plus, Sparkles } from 'lucide-react';
 import { SoloLevelingQuestModal } from '../../sololeveling/SoloLevelingQuestModal';
+import { getSavedSoloLevelingQuests } from '../../../services/persistenceService';
 
 export const SoloLevelingDailyQuestsView: React.FC = () => {
   const { userProfile } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Sync state from localStorage for the 4 core daily quest tasks
-  const [pushups, setPushups] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_pushups');
-    return saved ? parseInt(saved, 10) : 50;
-  });
-  const [situps, setSitups] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_situps');
-    return saved ? parseInt(saved, 10) : 50;
-  });
-  const [squats, setSquats] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_squats');
-    return saved ? parseInt(saved, 10) : 50;
-  });
-  const [runningKm, setRunningKm] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_running');
-    return saved ? parseFloat(saved) : 5.0;
-  });
+  // Sync state from persistent storage
+  const [pushups, setPushups] = useState<number>(() => getSavedSoloLevelingQuests().pushups);
+  const [situps, setSitups] = useState<number>(() => getSavedSoloLevelingQuests().situps);
+  const [squats, setSquats] = useState<number>(() => getSavedSoloLevelingQuests().squats);
+  const [runningKm, setRunningKm] = useState<number>(() => getSavedSoloLevelingQuests().runningKm);
 
   // Re-read storage whenever modal closes
   useEffect(() => {
     if (!isModalOpen) {
-      const p = localStorage.getItem('sl_quest_pushups');
-      const s = localStorage.getItem('sl_quest_situps');
-      const sq = localStorage.getItem('sl_quest_squats');
-      const r = localStorage.getItem('sl_quest_running');
-      if (p) setPushups(parseInt(p, 10));
-      if (s) setSitups(parseInt(s, 10));
-      if (sq) setSquats(parseInt(sq, 10));
-      if (r) setRunningKm(parseFloat(r));
+      const q = getSavedSoloLevelingQuests();
+      setPushups(q.pushups);
+      setSitups(q.situps);
+      setSquats(q.squats);
+      setRunningKm(q.runningKm);
     }
   }, [isModalOpen]);
 

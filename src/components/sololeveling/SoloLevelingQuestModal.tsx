@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../context/AppContext';
 import { getTodayDateString } from '../../db/database';
+import { getSavedSoloLevelingQuests, saveSoloLevelingQuests } from '../../services/persistenceService';
 import confetti from 'canvas-confetti';
 import { Info, X, Check, Clock, Award, ShieldAlert } from 'lucide-react';
 
@@ -15,27 +16,14 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
 }) => {
   const { grantXP } = useAppStore();
 
-  // Progress state for the iconic 4 Daily Quest goals
-  const [pushups, setPushups] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_pushups');
-    return saved ? parseInt(saved, 10) : 50;
-  });
-  const [situps, setSitups] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_situps');
-    return saved ? parseInt(saved, 10) : 50;
-  });
-  const [squats, setSquats] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_squats');
-    return saved ? parseInt(saved, 10) : 50;
-  });
-  const [runningKm, setRunningKm] = useState<number>(() => {
-    const saved = localStorage.getItem('sl_quest_running');
-    return saved ? parseFloat(saved) : 5.0;
-  });
+  const savedQuests = getSavedSoloLevelingQuests();
+  const [pushups, setPushups] = useState<number>(savedQuests.pushups);
+  const [situps, setSitups] = useState<number>(savedQuests.situps);
+  const [squats, setSquats] = useState<number>(savedQuests.squats);
+  const [runningKm, setRunningKm] = useState<number>(savedQuests.runningKm);
 
   const [isCompleted, setIsCompleted] = useState<boolean>(() => {
-    const saved = localStorage.getItem('sl_quest_completed_today');
-    return saved === getTodayDateString();
+    return savedQuests.completedDate === getTodayDateString();
   });
 
   const [showPenaltyMode, setShowPenaltyMode] = useState(false);
@@ -70,10 +58,7 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
   }, []);
 
   const saveProgress = (p: number, s: number, sq: number, r: number) => {
-    localStorage.setItem('sl_quest_pushups', String(p));
-    localStorage.setItem('sl_quest_situps', String(s));
-    localStorage.setItem('sl_quest_squats', String(sq));
-    localStorage.setItem('sl_quest_running', String(r));
+    saveSoloLevelingQuests(p, s, sq, r, isCompleted ? getTodayDateString() : null);
   };
 
   const addPushups = (amt: number) => {

@@ -17,6 +17,12 @@ import { getOrGenerateTodayWorkout } from '../engine/workoutEngine';
 import { calculateNewStats, XP_VALUES } from '../engine/xpEngine';
 import { INITIAL_ACHIEVEMENTS, DEFAULT_SKINCARE_PRODUCTS } from '../data/initialData';
 import { seedInitialMemoryIfEmpty, addHunterMemory, deleteHunterMemory } from '../engine/memoryEngine';
+import {
+  enablePersistentStorage,
+  saveVaultSnapshot,
+  loadVaultSnapshot,
+  createDefaultAwakenedProfile
+} from '../services/persistenceService';
 
 export type AppTab = 'home' | 'workout' | 'nutrition' | 'progress' | 'profile';
 
@@ -89,7 +95,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Hunter Memory state
   const [memories, setMemories] = useState<HunterMemoryEntry[]>([]);
 
-  // Load all user and daily state from IndexedDB
+  // Load all user and daily state from IndexedDB with permanent storage recovery
   const reloadAllData = useCallback(async () => {
     try {
       const todayStr = getTodayDateString();
@@ -100,42 +106,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setGoogleUser(savedGoogleUser);
       }
 
-      // 2. User Profile
-      const profile = await db.userProfile.toCollection().first();
-      setUserProfile(profile || null);
+      // 2. User Profile: check IndexedDB, then check localStorage vault snapshot, then initialize default
+      let profile = await db.userProfile.toCollection().first();
+      if (!profile) {
+        const snapshot = loadVaultSnapshot();
+        if (snapshot?.userProfile) {
+          profile = snapshot.userProfile;
+          const id = await db.userProfile.add(profile);
+          profile.id = id;
+        } else {
+          // Initialize Awakened Hunter baseline so data NEVER resets on fresh launch
+          profile = createDefaultAwakenedProfile(savedGoogleUser?.name || 'Bhanu');
+          const id = await db.userProfile.add(profile);
+          profile.id = id;
+        }
+      }
+      setUserProfile(profile);
 
-      // Seed initial memory if empty
-      await seedInitialMemoryIfEmpty(profile?.fullName || savedGoogleUser?.name || 'Hunter');
+      // Seed initial memory chronicle if empty
+      await seedInitialMemoryIfEmpty(profile?.fullName || savedGoogleUser?.name || 'Bhanu');
 
       // 3. Load Memories
       const memoryList = await db.hunterMemories.orderBy('createdAt').reverse().toArray();
       setMemories(memoryList);
 
-      if (!profile || !profile.isOnboarded) {
-        setIsLoading(false);
-        return;
-      }
-
       setEquipmentMode(profile.equipmentType === 'dumbbells' ? 'dumbbell' : 'bodyweight');
 
-      // 4. Hunter Stats
+      // 4. Hunter Stats: retrieve or restore from snapshot
       let stats = await db.hunterStats.toCollection().first();
       if (!stats) {
-        stats = {
-          level: 1,
-          levelTitle: 'AWAKENED',
-          currentXP: 0,
-          xpForNextLevel: 500,
-          totalLifetimeXP: 0,
-          streakDays: 1,
-          highestStreak: 1,
-          completedDaysCount: 0,
-          lastActiveDate: todayStr
-        };
-        const statsId = await db.hunterStats.add(stats);
-        stats.id = statsId;
+        const snapshot = loadVaultSnapshot();
+        if (snapshot?.hunterStats) {
+          stats = snapshot.hunterStats;
+          const id = await db.hunterStats.add(stats);
+          stats.id = id;
+        } else {
+          stats = {
+            level: 1,
+            levelTitle: 'AWAKENED',
+            currentXP: 120,
+            xpForNextLevel: 500,
+            totalLifetimeXP: 120,
+            streakDays: 1,
+            highestStreak: 1,
+            completedDaysCount: 0,
+            lastActiveDate: todayStr
+          };
+          const statsId = await db.hunterStats.add(stats);
+          stats.id = statsId;
+        }
       }
       setHunterStats(stats);
+
+      // Save initial snapshot to guarantee unresettable mirror
+      saveVaultSnapshot(profile, stats);
 
       // Seed achievements if empty
       const achCount = await db.achievements.count();
@@ -187,6 +211,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   useEffect(() => {
+    enablePersistentStorage();
     reloadAllData();
   }, [reloadAllData]);
 
@@ -202,6 +227,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         userProfile.fullName = user.name;
         await db.userProfile.put(userProfile);
         setUserProfile({ ...userProfile });
+        saveVaultSnapshot(userProfile, hunterStats);
       }
 
       await addNotification(
@@ -251,12 +277,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMemories(prev => prev.filter(m => m.id !== id));
   };
 
-  // Save profile and trigger initialization
+  // Save profile and trigger initialization with auto-snapshot
   const saveUserProfile = async (profile: UserProfile) => {
     await db.userProfile.clear();
     const id = await db.userProfile.add(profile);
     profile.id = id;
     setUserProfile(profile);
+
+    saveVaultSnapshot(profile, hunterStats);
 
     // Initial notification
     await addNotification(
@@ -268,7 +296,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await reloadAllData();
   };
 
-  // Grant XP with level-up detection
+  // Grant XP with level-up detection and vault snapshotting
   const grantXP = async (amount: number, reason?: string) => {
     if (!hunterStats) return;
 
@@ -277,6 +305,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await db.hunterStats.update(hunterStats.id, updatedStats);
     }
     setHunterStats(updatedStats);
+    saveVaultSnapshot(userProfile, updatedStats);
 
     if (reason) {
       console.log(`[XP +${amount}] ${reason}`);
