@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #080B14;
+  --bg-secondary: #101626;
+  --bg-card: #151D30;
+  --accent-primary: #725CFF;
+  --accent-cyan: #00D4FF;
+  --success: #27E58C;
+  --warning: #FFB547;
+  --danger: #FF5263;
+  --text-main: #F5F7FF;
+  --text-muted: #929DB5;
+}
+
+/* Custom base styles */
+html, body {
+  background-color: #080B14;
+  color: #F5F7FF;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+/* Safe areas for iPhone notch and home indicator */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* Glassmorphism primitives */
+.glass-panel {
+  background: rgba(21, 29, 48, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(114, 92, 255, 0.2);
+}
+
+.glass-panel-glow {
+  background: rgba(21, 29, 48, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(114, 92, 255, 0.35);
+  box-shadow: 0 0 25px -5px rgba(114, 92, 255, 0.25);
+}
+
+.glass-cyan-glow {
+  background: rgba(16, 22, 38, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 25px -5px rgba(0, 212, 255, 0.25);
+}
+
+/* Text glow effects */
+.text-glow-violet {
+  text-shadow: 0 0 16px rgba(114, 92, 255, 0.6);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 16px rgba(0, 212, 255, 0.6);
+}
+
+/* Hide scrollbars for clean mobile appearance */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
