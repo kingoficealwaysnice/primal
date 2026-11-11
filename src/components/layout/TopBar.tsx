@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../context/AppContext';
-import { Bell, Dumbbell, ShieldCheck, X, Check, Zap, LogIn } from 'lucide-react';
+import { Bell, Dumbbell, ShieldCheck, X, Check, Zap, LogIn, Sparkles } from 'lucide-react';
 import { SoloLevelingQuestModal } from '../sololeveling/SoloLevelingQuestModal';
 import { GoogleAuthModal } from '../auth/GoogleAuthModal';
+import { AwakenHeroScreen } from '../sololeveling/AwakenHeroScreen';
 
 export const TopBar: React.FC = () => {
   const {
@@ -18,10 +19,19 @@ export const TopBar: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuestInfo, setShowQuestInfo] = useState(false);
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
+  const [showAwakenHero, setShowAwakenHero] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <>
+      {showAwakenHero && (
+        <AwakenHeroScreen
+          isDismissable={true}
+          onClose={() => setShowAwakenHero(false)}
+          onGetStarted={() => setShowAwakenHero(false)}
+        />
+      )}
+
       <SoloLevelingQuestModal
         isOpen={showQuestInfo}
         onClose={() => setShowQuestInfo(false)}
@@ -32,27 +42,33 @@ export const TopBar: React.FC = () => {
         onClose={() => setShowGoogleAuth(false)}
       />
 
-      <header className="sticky top-0 z-40 bg-[#080B14]/85 backdrop-blur-xl border-b border-[#725CFF]/20 px-3 sm:px-4 py-3">
+      <header className="sticky top-0 z-40 bg-[#0A0714]/90 backdrop-blur-xl border-b border-[#A78BFA]/25 px-3 sm:px-4 py-3 pt-[max(env(safe-area-inset-top),0.75rem)]">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
-          {/* Logo & Subtitle */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#725CFF] to-[#00D4FF] p-0.5 shadow-[0_0_15px_rgba(114,92,255,0.4)] flex items-center justify-center">
-              <div className="w-full h-full bg-[#080B14] rounded-[10px] flex items-center justify-center">
-                <span className="font-display font-black text-sm text-[#00D4FF]">P</span>
+          {/* Logo & Subtitle (Click to view Awaken Hero Screen) */}
+          <div
+            onClick={() => setShowAwakenHero(true)}
+            className="flex items-center gap-2.5 cursor-pointer group select-none"
+            title="View Awaken Hero Screen"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#C084FC] via-[#A855F7] to-[#7C3AED] p-0.5 shadow-[0_0_15px_rgba(192,132,252,0.4)] flex items-center justify-center group-hover:scale-105 transition-transform">
+              <div className="w-full h-full bg-[#0A0714] rounded-[10px] flex items-center justify-center">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="text-[#C084FC]">
+                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="currentColor" />
+                </svg>
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-display font-extrabold text-sm tracking-wider text-[#F5F7FF]">
-                  PRIMAL <span className="text-[#00D4FF]">SYSTEM</span>
+                <h1 className="font-cinzel font-bold text-xs sm:text-sm tracking-wider text-[#F5F7FF] group-hover:text-[#C084FC] transition-colors">
+                  AWAKEN <span className="text-[#C084FC]">PRIMAL</span>
                 </h1>
                 {hunterStats && (
-                  <span className="text-[10px] font-display font-semibold px-2 py-0.5 rounded-full bg-[#725CFF]/20 text-[#00D4FF] border border-[#725CFF]/40">
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#C084FC]/15 text-[#C084FC] border border-[#C084FC]/30">
                     LVL {hunterStats.level}
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-[#929DB5] tracking-wide font-sans">
+              <p className="text-[10px] text-[#9D94B8] tracking-wide font-mono">
                 Day {userProfile?.currentDay || 1} / 90
               </p>
             </div>

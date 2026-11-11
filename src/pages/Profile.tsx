@@ -9,6 +9,7 @@ import { FacialAesthetics } from '../components/facial/FacialAesthetics';
 import { HunterStatusWindow } from '../components/sololeveling/HunterStatusWindow';
 import { EdgeCaseTester } from '../components/diagnostic/EdgeCaseTester';
 import { GoogleAuthModal } from '../components/auth/GoogleAuthModal';
+import { AwakenHeroScreen } from '../components/sololeveling/AwakenHeroScreen';
 import { exportAllData, importData, resetAllData } from '../utils/dataBackup';
 import { db } from '../db/database';
 import type { Achievement } from '../types';
@@ -43,6 +44,7 @@ export const Profile: React.FC = () => {
   const [showResetModal, setShowResetModal] = useState(false);
   const [showEditTargetsModal, setShowEditTargetsModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showAwakenHero, setShowAwakenHero] = useState(false);
 
   // Editable targets
   const [editCalories, setEditCalories] = useState(userProfile?.dailyCalorieTarget || 2100);
@@ -94,6 +96,14 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="pb-24 max-w-2xl mx-auto px-4 pt-3 space-y-4">
+      {showAwakenHero && (
+        <AwakenHeroScreen
+          isDismissable={true}
+          onClose={() => setShowAwakenHero(false)}
+          onGetStarted={() => setShowAwakenHero(false)}
+        />
+      )}
+
       <GoogleAuthModal
         isOpen={showGoogleModal}
         onClose={() => setShowGoogleModal(false)}
@@ -145,6 +155,30 @@ export const Profile: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Awaken Hero Screen Viewer Card */}
+      <button
+        onClick={() => setShowAwakenHero(true)}
+        className="w-full rounded-2xl border border-[#A78BFA]/30 bg-gradient-to-r from-[#17112B] via-[#1E143B] to-[#120E24] p-3.5 flex items-center justify-between active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(167,139,250,0.15)] group select-none"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#C084FC]/20 border border-[#C084FC] flex items-center justify-center text-[#C084FC] shadow-[0_0_12px_rgba(192,132,252,0.4)] group-hover:scale-105 transition-transform">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="text-left">
+            <span className="font-cinzel font-bold text-xs text-[#F5F7FF] tracking-wider uppercase block">
+              IMMERSIVE AWAKEN HERO SCREEN
+            </span>
+            <p className="text-[11px] text-[#9D94B8] font-mono mt-0.5">
+              View Jin-woo Awakening in full iPhone 16 Pro Max resolution
+            </p>
+          </div>
+        </div>
+
+        <span className="font-cinzel text-xs font-bold text-[#C084FC] bg-[#C084FC]/15 px-3 py-1.5 rounded-full border border-[#C084FC]/30">
+          VIEW ⚡
+        </span>
+      </button>
 
       {/* Google Account Security & Sync Protocol */}
       <div className="rounded-2xl border border-[#725CFF]/30 bg-[#151D30] p-4 flex items-center justify-between shadow-sm">

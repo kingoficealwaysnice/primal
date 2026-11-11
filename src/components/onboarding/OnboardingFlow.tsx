@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { db, getTodayDateString } from '../../db/database';
 import { Shield, Sparkles, ChevronRight, ChevronLeft, Upload, CheckCircle2 } from 'lucide-react';
+import { AwakenHeroScreen } from '../sololeveling/AwakenHeroScreen';
 
 export const OnboardingFlow: React.FC = () => {
   const { saveUserProfile } = useAppStore();
@@ -184,192 +185,73 @@ export const OnboardingFlow: React.FC = () => {
     await saveUserProfile(profile);
   };
 
-  // STEP 0: Cinematic Startup Splash (Exact visual match to Awaken screen)
+  // STEP 0: Cinematic Startup Splash (Awaken Hero Theme scaled for iPhone 16 Pro Max)
   if (step === 0) {
+    return <AwakenHeroScreen onGetStarted={() => setStep(1)} />;
+  }
+
+  // STEP 7: Activation Screen (Awaken Theme)
+  if (step === 7) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#0B0814] flex flex-col justify-between p-6 overflow-hidden select-none">
-        {/* Atmospheric purple/violet background nebula glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#7C3AED]/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-80 h-80 bg-[#C084FC]/15 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#00D4FF]/10 rounded-full blur-[90px] pointer-events-none" />
+      <div className="fixed inset-0 z-50 bg-[#0A0714] flex flex-col items-center justify-between px-6 pt-[max(env(safe-area-inset-top),2rem)] pb-[max(env(safe-area-inset-bottom),2rem)] h-[100dvh] overflow-hidden select-none">
+        {/* Ambient Amethyst Glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#7C3AED]/20 rounded-full blur-[130px] pointer-events-none" />
 
-        {/* Top Header: Stylized Runic Glyph + AWAKEN */}
-        <div className="pt-6 flex flex-col items-center justify-center relative z-10">
-          <div className="flex items-center gap-2">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#C084FC] drop-shadow-[0_0_12px_rgba(192,132,252,0.8)]">
-              <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="url(#runeGrad)" />
-              <defs>
-                <linearGradient id="runeGrad" x1="3" y1="2" x2="21" y2="22">
-                  <stop stopColor="#E9D5FF" />
-                  <stop offset="0.5" stopColor="#C084FC" />
-                  <stop offset="1" stopColor="#7C3AED" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="font-cinzel font-bold text-base tracking-[0.35em] text-[#F5F7FF] drop-shadow-[0_0_10px_rgba(233,213,255,0.6)]">
-              AWAKEN
-            </span>
-          </div>
+        <div className="text-center relative z-10 pt-4">
+          <span className="text-[11px] font-cinzel uppercase tracking-[0.3em] text-[#C084FC] font-bold animate-pulse block">
+            [ SYSTEM ACTIVATION SEQUENCE ]
+          </span>
         </div>
 
-        {/* Central Sung Jin-woo Inspired Anime Silhouette Artwork */}
-        <div className="relative flex-1 flex items-center justify-center my-2 max-w-sm mx-auto w-full">
-          <div className="relative w-72 h-84 flex items-center justify-center">
-            {/* Glowing aura rays behind character */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#7C3AED]/30 via-[#C084FC]/20 to-transparent rounded-full filter blur-2xl" />
-
-            {/* Stylized Hunter Silhouette SVG with glowing eye */}
-            <svg viewBox="0 0 300 360" className="w-full h-full drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]">
-              <defs>
-                {/* Purple dark shadow aura */}
-                <radialGradient id="auraGlow" cx="50%" cy="40%" r="60%">
-                  <stop offset="0%" stopColor="#C084FC" stopOpacity="0.5" />
-                  <stop offset="60%" stopColor="#7C3AED" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#0B0814" stopOpacity="0" />
-                </radialGradient>
-                {/* Eye flare filter */}
-                <filter id="eyeGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="6" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* Background ambient dark energy aura */}
-              <circle cx="150" cy="160" r="130" fill="url(#auraGlow)" />
-
-              {/* Shoulder & Coat Silhouette */}
-              <path
-                d="M60 360 C70 300 90 270 110 250 L125 210 L140 240 L160 240 L175 210 L190 250 C210 270 230 300 240 360 Z"
-                fill="#120E24"
-              />
-              <path
-                d="M90 360 C100 310 115 285 130 265 L145 235 L155 235 L170 265 C185 285 200 310 210 360 Z"
-                fill="#1A1435"
-              />
-
-              {/* Collar & Neck */}
-              <path d="M135 220 L150 245 L165 220 L160 180 L140 180 Z" fill="#201744" />
-              <polygon points="150,230 142,200 158,200" fill="#2D215E" />
-
-              {/* Jaw & Head Contour */}
-              <path
-                d="M125 150 C125 180 140 205 150 210 C160 205 175 180 175 150 Z"
-                fill="#1F183C"
-              />
-
-              {/* Spiky Anime Hair Outline (Solo Leveling / Jin-woo style) */}
-              <path
-                d="M115 155 C110 130 112 105 130 85 C140 70 160 70 175 80 C190 90 195 115 185 145 C195 130 200 110 195 90 C185 65 160 55 135 60 C110 65 95 95 105 135 C95 145 92 165 98 185 C108 175 114 165 115 155 Z"
-                fill="#120E24"
-              />
-              <path
-                d="M135 85 C145 75 165 75 175 88 C185 100 180 120 175 135 C170 115 160 100 145 95 Z"
-                fill="#271C50"
-              />
-              {/* Forehead hair bangs */}
-              <polygon points="135,115 145,145 148,125 155,150 160,128 168,142 165,115" fill="#150F2C" />
-
-              {/* The Iconic Glowing Purple/Lilac Left Eye with Radiant Flare Trail */}
-              <g filter="url(#eyeGlow)">
-                {/* Horizontal energy trail */}
-                <ellipse cx="162" cy="142" rx="20" ry="2" fill="#E9D5FF" opacity="0.8" />
-                <ellipse cx="162" cy="142" rx="10" ry="3.5" fill="#C084FC" />
-                <circle cx="160" cy="142" r="3.5" fill="#FFFFFF" />
-                {/* Upward curved energy wisp */}
-                <path d="M162 142 Q175 130 180 110 Q177 125 166 138 Z" fill="#C084FC" opacity="0.9" />
-              </g>
-
-              {/* Subtle face lighting */}
-              <path d="M152 142 L150 165 L145 168" stroke="#37276B" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+        <div className="text-center max-w-sm w-full space-y-6 relative z-10">
+          <div className="w-24 h-24 mx-auto rounded-full bg-[#18112E] border-2 border-[#C084FC] flex items-center justify-center shadow-[0_0_35px_rgba(192,132,252,0.45)]">
+            <CheckCircle2 className="w-12 h-12 text-[#C084FC]" />
           </div>
-        </div>
 
-        {/* Bottom Headline & Call To Action (Exact replica of Image Screen 1) */}
-        <div className="max-w-sm mx-auto w-full pb-4 relative z-10 text-center space-y-3">
-          <div className="space-y-0.5">
-            <h1 className="font-cinzel text-3xl sm:text-4xl leading-[1.15] font-black tracking-wider text-left pl-2">
-              <span className="text-[#F5F7FF] block">YOUR</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9D5FF] via-[#C084FC] to-[#A855F7] block drop-shadow-[0_0_20px_rgba(192,132,252,0.6)]">
-                AWAKENING
-              </span>
-              <span className="text-[#F5F7FF] block">BEGINS NOW!</span>
-            </h1>
-            <p className="text-xs text-[#A78BFA] font-sans text-left pl-2 pt-1 font-medium tracking-wide">
-              Walk your path. Take action. Conquer. Become a legend!
+          <div className="space-y-1.5">
+            <h2 className="font-cinzel font-black text-2xl text-[#F5F7FF] tracking-wider uppercase drop-shadow-[0_0_15px_rgba(192,132,252,0.6)]">
+              HUNTER PROFILE CREATED
+            </h2>
+            <p className="text-xs text-[#9D94B8] font-mono">
+              Physical parameters analyzed. 90-Day protocol generated.
             </p>
           </div>
 
+          <div className="p-4 rounded-2xl bg-[#16102D]/90 border border-[#A78BFA]/30 text-left space-y-2 font-mono text-xs shadow-lg">
+            <div className="text-[#00D4FF] font-bold">[ INITIAL ASSESSMENT COMPLETE ]</div>
+            <div className="text-[#F5F7FF]">HUNTER: {fullName.toUpperCase()}</div>
+            <div className="text-[#9D94B8]">RANK: LEVEL 01 — AWAKENED</div>
+            <div className="text-[#9D94B8]">DAILY CALORIES: ~{dailyCalories} kcal</div>
+            <div className="text-[#9D94B8]">DAILY PROTEIN: {dailyProtein}g</div>
+            <div className="text-[#27E58C] font-bold">[ YOUR TRANSFORMATION BEGINS NOW. ]</div>
+          </div>
+        </div>
+
+        <div className="w-full max-w-sm pb-2 relative z-10">
           <button
-            onClick={() => setStep(1)}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#C084FC] via-[#A855F7] to-[#9333EA] text-[#0B0814] font-display font-black text-sm tracking-widest uppercase hover:brightness-110 active:scale-95 transition-all shadow-[0_0_30px_rgba(192,132,252,0.45)] mt-3 flex items-center justify-center gap-2"
+            onClick={handleFinalActivation}
+            className="w-full h-14 sm:h-16 rounded-full bg-[#C084FC] hover:bg-[#D8B4FE] text-[#0A0714] font-cinzel font-black text-sm tracking-[0.15em] uppercase hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_35px_rgba(192,132,252,0.6)] flex items-center justify-center gap-2"
           >
-            Get Started <ChevronRight className="w-4 h-4 stroke-[3]" />
+            ENTER THE SYSTEM <ChevronRight className="w-5 h-5 stroke-[3]" />
           </button>
         </div>
       </div>
     );
   }
 
-  // STEP 7: Activation Screen
-  if (step === 7) {
-    return (
-      <div className="fixed inset-0 z-50 bg-[#080B14] flex flex-col items-center justify-between p-6">
-        <div className="pt-12 text-center">
-          <span className="text-[11px] font-display uppercase tracking-[0.3em] text-[#27E58C] font-semibold animate-pulse">
-            [ SYSTEM ACTIVATION SEQUENCE ]
-          </span>
-        </div>
-
-        <div className="text-center max-w-sm space-y-6">
-          <div className="w-24 h-24 mx-auto rounded-full bg-[#151D30] border-2 border-[#27E58C] flex items-center justify-center shadow-[0_0_35px_rgba(39,229,140,0.3)]">
-            <CheckCircle2 className="w-12 h-12 text-[#27E58C]" />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="font-display font-extrabold text-2xl text-[#F5F7FF] tracking-wide">
-              HUNTER PROFILE CREATED
-            </h2>
-            <p className="text-xs text-[#929DB5]">
-              Physical parameters analyzed. 90-Day protocol generated.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#151D30] border border-[#725CFF]/30 text-left space-y-2.5 font-mono text-xs">
-            <div className="text-[#00D4FF]">[ INITIAL ASSESSMENT COMPLETE ]</div>
-            <div className="text-[#F5F7FF]">HUNTER: {fullName.toUpperCase()}</div>
-            <div className="text-[#929DB5]">RANK: LEVEL 01 — AWAKENED</div>
-            <div className="text-[#929DB5]">DAILY CALORIES: ~{dailyCalories} kcal</div>
-            <div className="text-[#929DB5]">DAILY PROTEIN: {dailyProtein}g</div>
-            <div className="text-[#27E58C]">[ YOUR TRANSFORMATION BEGINS NOW. ]</div>
-          </div>
-        </div>
-
-        <div className="w-full max-w-sm pb-8">
-          <Button
-            variant="cyan"
-            size="lg"
-            className="w-full font-bold tracking-wider"
-            onClick={handleFinalActivation}
-          >
-            ENTER THE SYSTEM <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Multi-step Wizard (Steps 1 through 6)
+  // Multi-step Wizard (Steps 1 through 6 in Awaken Theme, scaled for iPhone 16 Pro Max)
   return (
-    <div className="min-h-screen bg-[#080B14] text-[#F5F7FF] p-4 flex flex-col justify-between max-w-md mx-auto pb-10">
+    <div className="min-h-[100dvh] bg-[#0A0714] text-[#F5F7FF] px-5 pt-[max(env(safe-area-inset-top),1.5rem)] pb-[max(env(safe-area-inset-bottom),2rem)] flex flex-col justify-between max-w-lg mx-auto relative overflow-hidden select-none">
+      {/* Background radial violet glow */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-80 h-80 bg-[#7C3AED]/15 rounded-full blur-[100px] pointer-events-none" />
+
       {/* Top Progress Indicator */}
-      <div className="pt-6 mb-6">
-        <div className="flex items-center justify-between text-xs font-display text-[#929DB5] mb-2">
-          <span>STEP 0{step} / 06</span>
-          <span className="text-[#00D4FF] font-semibold">
+      <div className="mb-5 relative z-10">
+        <div className="flex items-center justify-between text-xs font-mono text-[#9D94B8] mb-2">
+          <span className="font-cinzel text-[#C084FC] font-bold tracking-wider">
+            STEP 0{step} / 06
+          </span>
+          <span className="text-[#F5F7FF] font-semibold text-[11px] font-mono tracking-wider">
             {step === 1 && 'PERSONAL METRICS'}
             {step === 2 && 'PHYSIQUE REGISTRATION'}
             {step === 3 && 'TARGET PHYSIQUE'}
@@ -378,9 +260,9 @@ export const OnboardingFlow: React.FC = () => {
             {step === 6 && 'PROTOCOL CALIBRATION'}
           </span>
         </div>
-        <div className="w-full h-1.5 bg-[#151D30] rounded-full overflow-hidden border border-[#725CFF]/20">
+        <div className="w-full h-1.5 bg-[#17112B] rounded-full overflow-hidden border border-[#A78BFA]/30">
           <div
-            className="h-full bg-gradient-to-r from-[#725CFF] to-[#00D4FF] transition-all duration-300"
+            className="h-full bg-gradient-to-r from-[#C084FC] via-[#A855F7] to-[#7C3AED] shadow-[0_0_10px_rgba(192,132,252,0.8)] transition-all duration-300"
             style={{ width: `${(step / 6) * 100}%` }}
           />
         </div>
@@ -839,45 +721,40 @@ export const OnboardingFlow: React.FC = () => {
         </div>
       )}
 
-      {/* Bottom Navigation Buttons */}
-      <div className="flex gap-3 pt-6 border-t border-[#725CFF]/15">
-        <Button
-          variant="secondary"
+      {/* Bottom Navigation Buttons (Awaken Theme) */}
+      <div className="flex gap-3 pt-4 border-t border-[#A78BFA]/20 relative z-10">
+        <button
           onClick={() => setStep(prev => Math.max(1, prev - 1))}
-          className="flex-1"
+          className="flex-1 py-3.5 rounded-2xl border border-[#A78BFA]/30 bg-[#140E26] text-[#9D94B8] hover:text-white font-cinzel font-semibold text-xs tracking-wider uppercase active:scale-95 transition-all flex items-center justify-center gap-1"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" /> Back
-        </Button>
+          <ChevronLeft className="w-4 h-4" /> Back
+        </button>
 
         {step < 5 && (
-          <Button
-            variant="cyan"
+          <button
             onClick={() => setStep(prev => prev + 1)}
-            className="flex-1 font-semibold"
+            className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-[#C084FC] via-[#A855F7] to-[#7C3AED] text-[#0A0714] font-cinzel font-black text-xs tracking-wider uppercase active:scale-95 transition-all shadow-[0_0_20px_rgba(192,132,252,0.4)] flex items-center justify-center gap-1"
           >
-            Next <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
+            Next <ChevronRight className="w-4 h-4" />
+          </button>
         )}
 
         {step === 5 && (
-          <Button
-            variant="cyan"
+          <button
             onClick={handleProceedToStep6}
-            className="flex-1 font-semibold"
+            className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-[#C084FC] via-[#A855F7] to-[#7C3AED] text-[#0A0714] font-cinzel font-black text-xs tracking-wider uppercase active:scale-95 transition-all shadow-[0_0_20px_rgba(192,132,252,0.4)] flex items-center justify-center gap-1"
           >
-            Calculate Targets <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
+            Calculate Targets <ChevronRight className="w-4 h-4" />
+          </button>
         )}
 
         {step === 6 && (
-          <Button
-            variant="primary"
-            glow
+          <button
             onClick={() => setStep(7)}
-            className="flex-1 font-semibold tracking-wider"
+            className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-[#C084FC] via-[#A855F7] to-[#7C3AED] text-[#0A0714] font-cinzel font-black text-xs tracking-wider uppercase active:scale-95 transition-all shadow-[0_0_25px_rgba(192,132,252,0.5)] flex items-center justify-center gap-1.5"
           >
-            Complete Setup <Sparkles className="w-4 h-4 ml-1" />
-          </Button>
+            Complete Setup <Sparkles className="w-4 h-4" />
+          </button>
         )}
       </div>
     </div>

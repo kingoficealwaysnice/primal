@@ -3,72 +3,90 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #080B14;
-  --bg-secondary: #101626;
-  --bg-card: #151D30;
-  --accent-primary: #725CFF;
-  --accent-cyan: #00D4FF;
+  /* Awaken Theme Palette (Inspired by Solo Leveling protagonist awakening) */
+  --bg-primary: #0A0714;
+  --bg-secondary: #120D24;
+  --bg-card: #17112B;
+  --accent-primary: #C084FC;
+  --accent-violet: #A855F7;
+  --accent-purple: #7C3AED;
+  --accent-cyan: #38BDF8;
   --success: #27E58C;
   --warning: #FFB547;
   --danger: #FF5263;
   --text-main: #F5F7FF;
-  --text-muted: #929DB5;
+  --text-muted: #9D94B8;
 }
 
-/* Custom base styles */
+/* Custom base styles with iOS 16+ / iPhone 16 Pro Max optimizations */
 html, body {
-  background-color: #080B14;
+  background-color: #0A0714;
   color: #F5F7FF;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   overscroll-behavior-y: none;
 }
 
-/* Safe areas for iPhone notch and home indicator */
+/* iPhone 16 Pro Max Dynamic Island & Home Indicator Safe Areas */
 .pb-safe {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 34px));
 }
 
 .pt-safe {
-  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-top: max(1.25rem, env(safe-area-inset-top, 59px));
 }
 
-/* Glassmorphism primitives */
+.min-h-screen-ios {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.h-screen-ios {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Awaken Theme Glassmorphism Panels */
 .glass-panel {
-  background: rgba(21, 29, 48, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(114, 92, 255, 0.2);
+  background: rgba(23, 17, 43, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(167, 139, 250, 0.22);
 }
 
 .glass-panel-glow {
-  background: rgba(21, 29, 48, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(114, 92, 255, 0.35);
-  box-shadow: 0 0 25px -5px rgba(114, 92, 255, 0.25);
+  background: rgba(23, 17, 43, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(192, 132, 252, 0.38);
+  box-shadow: 0 0 30px -5px rgba(192, 132, 252, 0.25);
 }
 
 .glass-cyan-glow {
-  background: rgba(16, 22, 38, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 212, 255, 0.35);
-  box-shadow: 0 0 25px -5px rgba(0, 212, 255, 0.25);
+  background: rgba(18, 13, 36, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 30px -5px rgba(56, 189, 248, 0.25);
 }
 
 /* Text glow effects */
+.text-glow-lilac {
+  text-shadow: 0 0 18px rgba(192, 132, 252, 0.75);
+}
+
 .text-glow-violet {
-  text-shadow: 0 0 16px rgba(114, 92, 255, 0.6);
+  text-shadow: 0 0 16px rgba(168, 85, 247, 0.65);
 }
 
 .text-glow-cyan {
-  text-shadow: 0 0 16px rgba(0, 212, 255, 0.6);
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.65);
 }
 
-/* Hide scrollbars for clean mobile appearance */
+/* Hide scrollbars for clean mobile app appearance */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -76,4 +94,3 @@ html, body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
