@@ -13,7 +13,9 @@ import type {
   Achievement,
   PhysiquePhoto,
   SystemNotification,
-  DailyPerformanceReport
+  DailyPerformanceReport,
+  GoogleAuthUser,
+  HunterMemoryEntry
 } from '../types';
 
 export interface ExerciseHistoryRecord {
@@ -43,6 +45,8 @@ export class PrimalDatabase extends Dexie {
   notifications!: Table<SystemNotification, string>;
   exerciseHistory!: Table<ExerciseHistoryRecord, number>;
   dailyReports!: Table<DailyPerformanceReport, string>;
+  hunterMemories!: Table<HunterMemoryEntry, number>;
+  googleAuth!: Table<GoogleAuthUser, string>;
 
   constructor() {
     super('PrimalSystemDB');
@@ -61,7 +65,9 @@ export class PrimalDatabase extends Dexie {
       physiquePhotos: '++id, date, type, milestoneDay',
       notifications: 'id, timestamp, read',
       exerciseHistory: '++id, exerciseId, date',
-      dailyReports: 'date, dayNumber'
+      dailyReports: 'date, dayNumber',
+      hunterMemories: '++id, date, dayNumber, category, createdAt',
+      googleAuth: 'id, email'
     });
   }
 }
@@ -76,4 +82,3 @@ export const getTodayDateString = (): string => {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-

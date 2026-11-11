@@ -6,13 +6,17 @@ import type {
   WorkoutSession,
   MealEntry,
   SkincareLog,
-  SystemNotification
+  SystemNotification,
+  GoogleAuthUser,
+  HunterMemoryEntry,
+  MemoryCategory
 } from '../types';
 import { db, getTodayDateString } from '../db/database';
 import { getOrGenerateDailyQuests } from '../engine/questEngine';
 import { getOrGenerateTodayWorkout } from '../engine/workoutEngine';
 import { calculateNewStats, XP_VALUES } from '../engine/xpEngine';
 import { INITIAL_ACHIEVEMENTS, DEFAULT_SKINCARE_PRODUCTS } from '../data/initialData';
+import { seedInitialMemoryIfEmpty, addHunterMemory, deleteHunterMemory } from '../engine/memoryEngine';
 
 export type AppTab = 'home' | 'workout' | 'nutrition' | 'progress' | 'profile';
 
@@ -30,6 +34,22 @@ interface AppContextType {
   isLoading: boolean;
   levelUpModal: { show: boolean; level: number; title: string } | null;
   
+  // Google Auth
+  googleUser: GoogleAuthUser | null;
+  setGoogleAuth: (user: GoogleAuthUser | null) => Promise<void>;
+
+  // Memory Feature
+  memories: HunterMemoryEntry[];
+  saveMemory: (
+    title: string,
+    content: string,
+    category?: MemoryCategory,
+    tags?: string[],
+    moodScore?: number,
+    energyLevel?: number
+  ) => Promise<HunterMemoryEntry>;
+  removeMemory: (id: number) => Promise<void>;
+
   // Actions
   setCurrentTab: (tab: AppTab) => void;
   setEquipmentMode: (mode: 'bodyweight' | 'dumbbell') => void;
@@ -63,14 +83,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [levelUpModal, setLevelUpModal] = useState<{ show: boolean; level: number; title: string } | null>(null);
 
+  // Google Auth state
+  const [googleUser, setGoogleUser] = useState<GoogleAuthUser | null>(null);
+
+  // Hunter Memory state
+  const [memories, setMemories] = useState<HunterMemoryEntry[]>([]);
+
   // Load all user and daily state from IndexedDB
   const reloadAllData = useCallback(async () => {
     try {
       const todayStr = getTodayDateString();
 
-      // 1. User Profile
+      // 1. Google Auth state
+      const savedGoogleUser = await db.googleAuth.toCollection().first();
+      if (savedGoogleUser) {
+        setGoogleUser(savedGoogleUser);
+      }
+
+      // 2. User Profile
       const profile = await db.userProfile.toCollection().first();
       setUserProfile(profile || null);
+
+      // Seed initial memory if empty
+      await seedInitialMemoryIfEmpty(profile?.fullName || savedGoogleUser?.name || 'Hunter');
+
+      // 3. Load Memories
+      const memoryList = await db.hunterMemories.orderBy('createdAt').reverse().toArray();
+      setMemories(memoryList);
 
       if (!profile || !profile.isOnboarded) {
         setIsLoading(false);
@@ -79,7 +118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setEquipmentMode(profile.equipmentType === 'dumbbells' ? 'dumbbell' : 'bodyweight');
 
-      // 2. Hunter Stats
+      // 4. Hunter Stats
       let stats = await db.hunterStats.toCollection().first();
       if (!stats) {
         stats = {
@@ -110,11 +149,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await db.skincareProducts.bulkAdd(DEFAULT_SKINCARE_PRODUCTS);
       }
 
-      // 3. Daily Quests
+      // 5. Daily Quests
       const quests = await getOrGenerateDailyQuests(profile);
       setTodayQuests(quests);
 
-      // 4. Today's Workout
+      // 6. Today's Workout
       const workout = await getOrGenerateTodayWorkout(
         profile.currentDay || 1,
         profile.fitnessLevel || 'beginner',
@@ -123,20 +162,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       setTodayWorkout(workout);
 
-      // 5. Meals
+      // 7. Meals
       const meals = await db.mealEntries.where('date').equals(todayStr).toArray();
       setTodayMeals(meals);
 
-      // 6. Water
+      // 8. Water
       const waterEntries = await db.waterEntries.where('date').equals(todayStr).toArray();
       const totalWater = waterEntries.reduce((sum, w) => sum + w.amountMl, 0);
       setTodayWaterMl(totalWater);
 
-      // 7. Skincare
+      // 9. Skincare
       const skincare = await db.skincareLogs.where('date').equals(todayStr).first();
       setTodaySkincare(skincare || null);
 
-      // 8. Notifications
+      // 10. Notifications
       const notifs = await db.notifications.orderBy('timestamp').reverse().limit(20).toArray();
       setNotifications(notifs);
 
@@ -150,6 +189,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     reloadAllData();
   }, [reloadAllData]);
+
+  // Google Auth Sign-in / Sign-out
+  const setGoogleAuth = async (user: GoogleAuthUser | null) => {
+    if (user) {
+      await db.googleAuth.clear();
+      await db.googleAuth.put(user);
+      setGoogleUser(user);
+
+      // If userProfile exists without name, update with Google name
+      if (userProfile && !userProfile.fullName) {
+        userProfile.fullName = user.name;
+        await db.userProfile.put(userProfile);
+        setUserProfile({ ...userProfile });
+      }
+
+      await addNotification(
+        'GOOGLE PROTOCOL LINKED',
+        `Authenticated as ${user.name} (${user.email}). System cloud sync initialized.`,
+        'SYSTEM'
+      );
+    } else {
+      await db.googleAuth.clear();
+      setGoogleUser(null);
+      await addNotification(
+        'GOOGLE PROTOCOL DISCONNECTED',
+        'Signed out from Google. Local system data preserved.',
+        'SYSTEM'
+      );
+    }
+  };
+
+  // Memory Feature: Save memory entry
+  const saveMemory = async (
+    title: string,
+    content: string,
+    category: MemoryCategory = 'reflection',
+    tags: string[] = [],
+    moodScore: number = 5,
+    energyLevel: number = 5
+  ): Promise<HunterMemoryEntry> => {
+    const day = userProfile?.currentDay || 1;
+    const entry = await addHunterMemory(title, content, category, tags, day, moodScore, energyLevel);
+    setMemories(prev => [entry, ...prev]);
+
+    // Award +50 XP for discipline & reflection
+    await grantXP(entry.xpAwarded || 50, `Memory Inscribed: ${entry.title}`);
+
+    await addNotification(
+      'MEMORY INSCRIBED',
+      `Day ${day} Memory archived in System Vault (+50 XP).`,
+      'SYSTEM'
+    );
+
+    return entry;
+  };
+
+  // Memory Feature: Delete memory entry
+  const removeMemory = async (id: number) => {
+    await deleteHunterMemory(id);
+    setMemories(prev => prev.filter(m => m.id !== id));
+  };
 
   // Save profile and trigger initialization
   const saveUserProfile = async (profile: UserProfile) => {
@@ -351,6 +451,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         equipmentMode,
         isLoading,
         levelUpModal,
+        googleUser,
+        setGoogleAuth,
+        memories,
+        saveMemory,
+        removeMemory,
         setCurrentTab,
         setEquipmentMode,
         dismissLevelUpModal: () => setLevelUpModal(null),

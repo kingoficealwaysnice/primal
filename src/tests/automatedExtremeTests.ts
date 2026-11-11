@@ -2,6 +2,8 @@ import { calculateNutritionTargets, calculateWalkingCalories, estimateWalkingFor
 import { parseNaturalLanguageMeal, FOOD_DATABASE } from '../data/foodDatabase';
 import { getLevelDetails, calculateNewStats, HUNTER_LEVELS } from '../engine/xpEngine';
 import { generateDailyWorkout, getPhaseInfo } from '../engine/workoutEngine';
+import { mapGooglePayloadToUser, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from '../services/googleAuth';
+import { MEMORY_CATEGORIES } from '../engine/memoryEngine';
 import type { HunterStats } from '../types';
 
 let totalTests = 0;
@@ -138,6 +140,31 @@ console.log('\n[SUITE 4: 90-Day Workout Progression]');
   // Dumbbell mode exercise integration
   const d1_db = generateDailyWorkout(1, 'intermediate', 'dumbbell', 30);
   assert(d1_db.equipmentMode === 'dumbbell', 'Dumbbell mode properly flagged');
+}
+
+// SUITE 5: Google OAuth & Hunter Memory Vault Engine
+console.log('\n[SUITE 5: Google OAuth & Hunter Memory Vault]');
+{
+  // 1. Google OAuth Payload Mapping & Verification
+  const mockPayload = {
+    sub: '10987654321',
+    email: 'jinwoo@hunterguild.com',
+    name: 'Sung Jin-woo',
+    given_name: 'Jin-woo',
+    family_name: 'Sung',
+    picture: 'https://example.com/jinwoo.png',
+    email_verified: true
+  };
+  const mappedUser = mapGooglePayloadToUser(mockPayload, 'mock_token');
+  assert(mappedUser.id === '10987654321', 'Google Sub mapped to user id');
+  assert(mappedUser.email === 'jinwoo@hunterguild.com', 'Google email mapped');
+  assert(mappedUser.name === 'Sung Jin-woo', 'Google full name mapped');
+  assert(mappedUser.verifiedEmail === true, 'Google email verification preserved');
+
+  // 2. Memory categories verification
+  assert(MEMORY_CATEGORIES.length >= 6, 'Memory categories defined (Reflection, Milestone, Mindset, Workout, etc.)');
+  assert(MEMORY_CATEGORIES.some(c => c.id === 'reflection'), 'Reflection category supported');
+  assert(MEMORY_CATEGORIES.some(c => c.id === 'milestone'), 'Milestone category supported');
 }
 
 console.log('\n======================================================');

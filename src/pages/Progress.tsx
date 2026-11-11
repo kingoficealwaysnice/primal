@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { db, getTodayDateString } from '../db/database';
 import type { BodyMeasurement, PhysiquePhoto, DailyPerformanceReport } from '../types';
 import { generateDailyReport } from '../engine/reportEngine';
+import { HunterMemoryVault } from '../components/memory/HunterMemoryVault';
 import {
   TrendingUp,
   Camera,
@@ -32,7 +33,7 @@ import {
 export const Progress: React.FC = () => {
   const { userProfile, hunterStats } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'measurements' | 'photos' | 'report'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'measurements' | 'photos' | 'memories' | 'report'>('overview');
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [photos, setPhotos] = useState<PhysiquePhoto[]>([]);
   const [dailyReport, setDailyReport] = useState<DailyPerformanceReport | null>(null);
@@ -160,6 +161,16 @@ export const Progress: React.FC = () => {
           GALLERY
         </button>
         <button
+          onClick={() => setActiveTab('memories')}
+          className={`flex-1 py-2 text-xs font-display font-semibold uppercase tracking-wider rounded-xl transition-all ${
+            activeTab === 'memories'
+              ? 'bg-[#C084FC] text-[#080B14] font-bold shadow-md'
+              : 'text-[#929DB5] hover:text-[#F5F7FF]'
+          }`}
+        >
+          VAULT
+        </button>
+        <button
           onClick={() => setActiveTab('report')}
           className={`flex-1 py-2 text-xs font-display font-semibold uppercase tracking-wider rounded-xl transition-all ${
             activeTab === 'report'
@@ -167,7 +178,7 @@ export const Progress: React.FC = () => {
               : 'text-[#929DB5] hover:text-[#F5F7FF]'
           }`}
         >
-          DAILY REPORT
+          REPORT
         </button>
       </div>
 
@@ -374,6 +385,13 @@ export const Progress: React.FC = () => {
               </div>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* HUNTER MEMORY VAULT TAB */}
+      {activeTab === 'memories' && (
+        <div className="animate-in fade-in duration-200">
+          <HunterMemoryVault />
         </div>
       )}
 

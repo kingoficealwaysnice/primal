@@ -232,3 +232,4 @@ export const SoloLevelingDailyQuestsView: React.FC = () => {
     </div>
   );
 };
+

@@ -8,6 +8,7 @@ import { SkincareTracker } from '../components/skincare/SkincareTracker';
 import { FacialAesthetics } from '../components/facial/FacialAesthetics';
 import { HunterStatusWindow } from '../components/sololeveling/HunterStatusWindow';
 import { EdgeCaseTester } from '../components/diagnostic/EdgeCaseTester';
+import { GoogleAuthModal } from '../components/auth/GoogleAuthModal';
 import { exportAllData, importData, resetAllData } from '../utils/dataBackup';
 import { db } from '../db/database';
 import type { Achievement } from '../types';
@@ -34,12 +35,14 @@ export const Profile: React.FC = () => {
     equipmentMode,
     setEquipmentMode,
     saveUserProfile,
-    reloadAllData
+    reloadAllData,
+    googleUser
   } = useAppStore();
 
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showEditTargetsModal, setShowEditTargetsModal] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   // Editable targets
   const [editCalories, setEditCalories] = useState(userProfile?.dailyCalorieTarget || 2100);
@@ -91,6 +94,11 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="pb-24 max-w-2xl mx-auto px-4 pt-3 space-y-4">
+      <GoogleAuthModal
+        isOpen={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+      />
+
       {/* Hunter Identity Banner */}
       <div className="rounded-3xl bg-gradient-to-br from-[#151D30] to-[#101626] border border-[#725CFF]/35 p-5 shadow-[0_10px_35px_rgba(0,0,0,0.5)]">
         <div className="flex items-center gap-4">
@@ -136,6 +144,43 @@ export const Profile: React.FC = () => {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Google Account Security & Sync Protocol */}
+      <div className="rounded-2xl border border-[#725CFF]/30 bg-[#151D30] p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.87c2.26-2.09 3.67-5.17 3.67-9.15z" />
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3.05c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.26v3.15C3.25 21.31 7.31 24 12 24z" />
+              <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.26C.46 8.23 0 10.06 0 12s.46 3.77 1.26 5.39l4.01-3.15z" />
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.69 1.26 6.61l4.01 3.15c.95-2.85 3.6-4.96 6.73-4.96z" />
+            </svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-display font-bold text-xs text-[#F5F7FF]">
+                GOOGLE PROTOCOL AUTH
+              </span>
+              {googleUser && (
+                <span className="text-[9px] font-mono font-bold text-[#27E58C] bg-[#27E58C]/15 px-1.5 py-0.5 rounded">
+                  LINKED
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[#9D94B8] font-mono mt-0.5">
+              {googleUser ? googleUser.email : 'Link official Google Account for cloud memory sync'}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          variant={googleUser ? 'ghost' : 'primary'}
+          size="sm"
+          onClick={() => setShowGoogleModal(true)}
+        >
+          {googleUser ? 'Manage' : 'Connect'}
+        </Button>
       </div>
 
       {/* Solo Leveling Character Attributes Window */}

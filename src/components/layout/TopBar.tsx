@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../context/AppContext';
-import { Bell, Dumbbell, Shield, X, Check, Zap } from 'lucide-react';
+import { Bell, Dumbbell, ShieldCheck, X, Check, Zap, LogIn } from 'lucide-react';
 import { SoloLevelingQuestModal } from '../sololeveling/SoloLevelingQuestModal';
+import { GoogleAuthModal } from '../auth/GoogleAuthModal';
 
 export const TopBar: React.FC = () => {
   const {
@@ -10,11 +11,13 @@ export const TopBar: React.FC = () => {
     equipmentMode,
     setEquipmentMode,
     notifications,
-    markNotificationRead
+    markNotificationRead,
+    googleUser
   } = useAppStore();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuestInfo, setShowQuestInfo] = useState(false);
+  const [showGoogleAuth, setShowGoogleAuth] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -22,6 +25,11 @@ export const TopBar: React.FC = () => {
       <SoloLevelingQuestModal
         isOpen={showQuestInfo}
         onClose={() => setShowQuestInfo(false)}
+      />
+
+      <GoogleAuthModal
+        isOpen={showGoogleAuth}
+        onClose={() => setShowGoogleAuth(false)}
       />
 
       <header className="sticky top-0 z-40 bg-[#080B14]/85 backdrop-blur-xl border-b border-[#725CFF]/20 px-3 sm:px-4 py-3">
@@ -50,8 +58,52 @@ export const TopBar: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Controls: Solo Leveling Quest HUD + Equipment + Notifications */}
+          {/* Right Controls: Google Auth + Quest HUD + Equipment + Notifications */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Google Auth Status / Login Button */}
+            <button
+              onClick={() => setShowGoogleAuth(true)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-mono active:scale-95 transition-all shadow-sm ${
+                googleUser
+                  ? 'bg-[#27E58C]/10 border-[#27E58C]/50 text-[#27E58C]'
+                  : 'bg-[#151D30] border-[#725CFF]/30 text-[#929DB5] hover:text-white'
+              }`}
+              title={googleUser ? `Google Linked: ${googleUser.email}` : 'Sign in with Google'}
+            >
+              {googleUser ? (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-[#27E58C] shadow-[0_0_6px_#27E58C]" />
+                  <span className="text-[10px] font-bold hidden sm:inline truncate max-w-[80px]">
+                    {googleUser.givenName || 'Google'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.87c2.26-2.09 3.67-5.17 3.67-9.15z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3.05c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.26v3.15C3.25 21.31 7.31 24 12 24z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.26C.46 8.23 0 10.06 0 12s.46 3.77 1.26 5.39l4.01-3.15z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.69 1.26 6.61l4.01 3.15c.95-2.85 3.6-4.96 6.73-4.96z"
+                    />
+                  </svg>
+                  <span className="text-[10px] font-bold hidden sm:inline">
+                    LOGIN
+                  </span>
+                </>
+              )}
+            </button>
+
             {/* Iconic Solo Leveling Holographic Quest HUD button */}
             <button
               onClick={() => setShowQuestInfo(true)}
@@ -62,7 +114,7 @@ export const TopBar: React.FC = () => {
                 !
               </div>
               <span className="text-[10px] font-bold uppercase hidden xs:inline">
-                QUEST INFO
+                QUEST
               </span>
             </button>
 
@@ -98,65 +150,67 @@ export const TopBar: React.FC = () => {
       {showNotifications && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
-            className="absolute inset-0 bg-[#080B14]/70 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowNotifications(false)}
           />
-          <div className="relative w-full max-w-sm bg-[#101626] border-l border-[#725CFF]/30 h-full p-5 overflow-y-auto z-10 flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#725CFF]/20">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-[#00D4FF]" />
-                <h3 className="font-display font-bold text-sm tracking-wider uppercase text-[#F5F7FF]">
-                  SYSTEM TRANSMISSIONS
-                </h3>
+
+          <div className="relative w-full max-w-sm bg-[#101626] border-l border-[#725CFF]/30 p-5 overflow-y-auto flex flex-col justify-between z-10 shadow-2xl animate-in slide-in-from-right duration-200">
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-[#725CFF]/20">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-[#00D4FF]" />
+                  <h2 className="font-display font-bold text-sm text-[#F5F7FF] tracking-wider uppercase">
+                    SYSTEM BROADCASTS
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setShowNotifications(false)}
+                  className="p-1 text-[#929DB5] hover:text-white rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="p-1 rounded-lg bg-[#151D30] text-[#929DB5] hover:text-[#F5F7FF]"
-              >
-                <X className="w-5 h-5" />
-              </button>
+
+              <div className="mt-4 space-y-3">
+                {notifications.length === 0 ? (
+                  <p className="text-xs text-[#929DB5] text-center py-8 font-mono">
+                    [NO SYSTEM BROADCASTS PENDING]
+                  </p>
+                ) : (
+                  notifications.map(n => (
+                    <div
+                      key={n.id}
+                      onClick={() => markNotificationRead(n.id)}
+                      className={`p-3 rounded-xl border text-xs transition-all cursor-pointer ${
+                        n.read
+                          ? 'bg-[#151D30]/40 border-white/5 text-[#929DB5]'
+                          : 'bg-[#151D30] border-[#00D4FF]/40 text-[#F5F7FF] shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-display font-bold text-[11px] tracking-wide text-[#00D4FF]">
+                          {n.title}
+                        </span>
+                        <span className="text-[10px] text-[#929DB5] font-mono">
+                          {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-[#929DB5] leading-relaxed">
+                        {n.message}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
-            <div className="flex-1 space-y-3">
-              {notifications.length === 0 ? (
-                <div className="text-center py-12 text-[#929DB5] text-xs">
-                  [ NO TRANSMISSIONS RECORDED ]
-                </div>
-              ) : (
-                notifications.map(notif => (
-                  <div
-                    key={notif.id}
-                    className={`p-3 rounded-xl border transition-all ${
-                      notif.read
-                        ? 'bg-[#151D30]/60 border-[#725CFF]/15 text-[#929DB5]'
-                        : 'bg-[#151D30] border-[#00D4FF]/40 text-[#F5F7FF] shadow-[0_0_15px_rgba(0,212,255,0.1)]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-display font-semibold uppercase px-2 py-0.5 rounded bg-[#725CFF]/20 text-[#00D4FF]">
-                        [{notif.type}]
-                      </span>
-                      {!notif.read && (
-                        <button
-                          onClick={() => markNotificationRead(notif.id)}
-                          className="text-[10px] text-[#00D4FF] hover:underline flex items-center gap-1"
-                        >
-                          <Check className="w-3 h-3" /> Mark read
-                        </button>
-                      )}
-                    </div>
-                    <h4 className="text-xs font-display font-semibold mb-1 text-[#F5F7FF]">
-                      {notif.title}
-                    </h4>
-                    <p className="text-xs leading-relaxed text-[#929DB5]">
-                      {notif.message}
-                    </p>
-                    <span className="text-[9px] text-[#929DB5]/60 block mt-2">
-                      {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))
-              )}
+            <div className="pt-4 border-t border-[#725CFF]/20">
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="w-full py-2.5 rounded-xl bg-[#151D30] border border-[#725CFF]/30 font-display text-xs text-[#F5F7FF] font-semibold uppercase tracking-wider"
+              >
+                Close Logs
+              </button>
             </div>
           </div>
         </div>
@@ -164,4 +218,3 @@ export const TopBar: React.FC = () => {
     </>
   );
 };
-

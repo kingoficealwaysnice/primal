@@ -274,3 +274,33 @@ export interface DailyPerformanceReport {
   systemMessage: string;
 }
 
+export interface GoogleAuthUser {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  givenName?: string;
+  familyName?: string;
+  verifiedEmail?: boolean;
+  accessToken?: string;
+  idToken?: string;
+  linkedAt: string;
+}
+
+export type MemoryCategory = 'mindset' | 'physique' | 'workout' | 'nutrition' | 'milestone' | 'reflection';
+
+export interface HunterMemoryEntry {
+  id?: number;
+  date: string;
+  dayNumber: number;
+  title: string;
+  content: string;
+  category: MemoryCategory;
+  tags: string[];
+  moodScore?: number; // 1 - 5
+  energyLevel?: number; // 1 - 5
+  xpAwarded?: number;
+  createdAt: string;
+}
+
+
