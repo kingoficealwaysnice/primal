@@ -405,3 +405,4 @@ export const HunterMemoryVault: React.FC = () => {
     </div>
   );
 };
+
