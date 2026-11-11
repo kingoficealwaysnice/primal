@@ -6,6 +6,8 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { SkincareTracker } from '../components/skincare/SkincareTracker';
 import { FacialAesthetics } from '../components/facial/FacialAesthetics';
+import { HunterStatusWindow } from '../components/sololeveling/HunterStatusWindow';
+import { EdgeCaseTester } from '../components/diagnostic/EdgeCaseTester';
 import { exportAllData, importData, resetAllData } from '../utils/dataBackup';
 import { db } from '../db/database';
 import type { Achievement } from '../types';
@@ -136,6 +138,9 @@ export const Profile: React.FC = () => {
         </div>
       </div>
 
+      {/* Solo Leveling Character Attributes Window */}
+      <HunterStatusWindow />
+
       {/* Skincare & Facial Aesthetics Modules */}
       <SkincareTracker />
       <FacialAesthetics />
@@ -244,6 +249,9 @@ export const Profile: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {/* System Diagnostic & Edge Case Testing Lab */}
+      <EdgeCaseTester />
 
       {/* Data Backup & Privacy Section */}
       <Card

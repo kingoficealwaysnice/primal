@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../context/AppContext';
-import { Bell, Dumbbell, Shield, X, Check } from 'lucide-react';
+import { Bell, Dumbbell, Shield, X, Check, Zap } from 'lucide-react';
+import { SoloLevelingQuestModal } from '../sololeveling/SoloLevelingQuestModal';
 
 export const TopBar: React.FC = () => {
   const {
@@ -13,11 +14,17 @@ export const TopBar: React.FC = () => {
   } = useAppStore();
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showQuestInfo, setShowQuestInfo] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#080B14]/85 backdrop-blur-xl border-b border-[#725CFF]/20 px-4 py-3">
+      <SoloLevelingQuestModal
+        isOpen={showQuestInfo}
+        onClose={() => setShowQuestInfo(false)}
+      />
+
+      <header className="sticky top-0 z-40 bg-[#080B14]/85 backdrop-blur-xl border-b border-[#725CFF]/20 px-3 sm:px-4 py-3">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           {/* Logo & Subtitle */}
           <div className="flex items-center gap-2.5">
@@ -43,8 +50,22 @@ export const TopBar: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Controls: Equipment Switch & Notification Bell */}
-          <div className="flex items-center gap-2">
+          {/* Right Controls: Solo Leveling Quest HUD + Equipment + Notifications */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Iconic Solo Leveling Holographic Quest HUD button */}
+            <button
+              onClick={() => setShowQuestInfo(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#00D4FF]/15 border border-[#00D4FF] text-xs font-display tracking-widest text-[#00D4FF] active:scale-95 transition-all shadow-[0_0_15px_rgba(0,212,255,0.3)] animate-pulse"
+              title="Open Solo Leveling Quest HUD"
+            >
+              <div className="w-3.5 h-3.5 rounded-full border border-[#00D4FF] flex items-center justify-center text-[9px] font-bold">
+                !
+              </div>
+              <span className="text-[10px] font-bold uppercase hidden xs:inline">
+                QUEST INFO
+              </span>
+            </button>
+
             {/* Equipment Toggle Pill */}
             <button
               onClick={() => setEquipmentMode(equipmentMode === 'bodyweight' ? 'dumbbell' : 'bodyweight')}
@@ -53,7 +74,7 @@ export const TopBar: React.FC = () => {
             >
               <Dumbbell className={`w-3.5 h-3.5 ${equipmentMode === 'dumbbell' ? 'text-[#00D4FF]' : 'text-[#725CFF]'}`} />
               <span className="text-[11px] font-semibold uppercase">
-                {equipmentMode === 'dumbbell' ? 'DB Mode' : 'BW Mode'}
+                {equipmentMode === 'dumbbell' ? 'DB' : 'BW'}
               </span>
             </button>
 

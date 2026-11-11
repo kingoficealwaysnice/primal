@@ -76,8 +76,10 @@ export function calculateNewStats(currentStats: HunterStats, xpGained: number): 
   newLevelTitle?: string;
   newLevelNumber?: number;
 } {
-  const newTotalXP = currentStats.totalLifetimeXP + xpGained;
-  const oldDetails = getLevelDetails(currentStats.totalLifetimeXP);
+  const safeXpGained = Number.isFinite(xpGained) && xpGained > 0 ? Math.min(100000, xpGained) : 0;
+  const currentTotal = Number.isFinite(currentStats.totalLifetimeXP) && currentStats.totalLifetimeXP >= 0 ? currentStats.totalLifetimeXP : 0;
+  const newTotalXP = currentTotal + safeXpGained;
+  const oldDetails = getLevelDetails(currentTotal);
   const newDetails = getLevelDetails(newTotalXP);
 
   const didLevelUp = newDetails.level > oldDetails.level;

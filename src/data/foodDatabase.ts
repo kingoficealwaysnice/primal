@@ -550,9 +550,10 @@ export const FOOD_DATABASE: FoodDatabaseItem[] = [
 
 // Natural language numbers mapping
 const WORD_TO_NUMBER: Record<string, number> = {
-  one: 1, two: 2, three: 3, four: 4, five: 5,
+  a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5,
   six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-  a: 1, an: 1, half: 0.5
+  eleven: 11, twelve: 12, dozen: 12, fifteen: 15, twenty: 20,
+  half: 0.5, quarter: 0.25, couple: 2, few: 3
 };
 
 export function parseNaturalLanguageMeal(input: string): {
@@ -562,34 +563,38 @@ export function parseNaturalLanguageMeal(input: string): {
   const items: FoodItem[] = [];
   const unmatchedPhrases: string[] = [];
 
-  if (!input || !input.trim()) {
+  if (!input || typeof input !== 'string' || !input.trim()) {
     return { items, unmatchedPhrases };
   }
 
-  // Split into candidate food phrases
+  // Split into candidate food phrases using commas, newlines, semicolons, and connectors
   const rawSegments = input
-    .split(/[,;\n]|\band\b|\bwith\b|\bplus\b/i)
+    .split(/[,;\n+]|\band\b|\bwith\b|\bplus\b|\balong with\b/i)
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
   for (const segment of rawSegments) {
-    const cleanSeg = segment.toLowerCase().replace(/[^\w\s\d.]/g, ' ').trim();
+    const cleanSeg = segment.toLowerCase().replace(/[^\w\s\d./]/g, ' ').trim();
     if (!cleanSeg) continue;
 
-    // Detect quantity pattern: "4", "2.5", "100g", "2 slices", "1 glass", "four"
     let quantity = 1;
     let unitFound = '';
 
-    // Check for "100g", "200 gm", "300ml"
+    // Check fractional format like "1/2", "3/4", "1/4"
+    const fractionMatch = cleanSeg.match(/(\d+)\s*\/\s*(\d+)/);
     const gramMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|gms|grams)\b/);
-    const mlMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:ml|milliliters)\b/);
+    const mlMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:ml|milliliters|millilitres)\b/);
     const scoopMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:scoop|scoops)\b/);
     const sliceMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:slice|slices)\b/);
-    const cupMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:cup|cups|katori|katoris|bowl|bowls)\b/);
+    const cupMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:cup|cups|katori|katoris|bowl|bowls|glass|glasses)\b/);
     const pieceMatch = cleanSeg.match(/(\d+(?:\.\d+)?)\s*(?:piece|pieces|roti|rotis|chapatis|eggs|egg|idli|idlis)\b/);
     const leadingNumMatch = cleanSeg.match(/^(\d+(?:\.\d+)?)\b/);
 
-    if (gramMatch) {
+    if (fractionMatch) {
+      const num = parseFloat(fractionMatch[1]);
+      const den = parseFloat(fractionMatch[2]);
+      if (den > 0) quantity = num / den;
+    } else if (gramMatch) {
       quantity = parseFloat(gramMatch[1]);
       unitFound = 'g';
     } else if (mlMatch) {
@@ -610,12 +615,20 @@ export function parseNaturalLanguageMeal(input: string): {
     } else if (leadingNumMatch) {
       quantity = parseFloat(leadingNumMatch[1]);
     } else {
-      // Check word number like "four boiled eggs", "two slices"
-      const firstWord = cleanSeg.split(' ')[0];
-      if (WORD_TO_NUMBER[firstWord] !== undefined) {
-        quantity = WORD_TO_NUMBER[firstWord];
+      const words = cleanSeg.split(/\s+/);
+      for (const w of words) {
+        if (WORD_TO_NUMBER[w] !== undefined) {
+          quantity = WORD_TO_NUMBER[w];
+          break;
+        }
       }
     }
+
+    // Safety bounds for quantity
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      quantity = 1;
+    }
+    quantity = Math.min(10000, quantity);
 
     // Try matching food item against database
     let bestMatch: FoodDatabaseItem | null = null;
@@ -635,13 +648,11 @@ export function parseNaturalLanguageMeal(input: string): {
     if (bestMatch) {
       let multiplier = quantity;
 
-      // Handle gram/ml scaled items
       if (unitFound === 'g' && bestMatch.servingUnit.includes('grams')) {
         multiplier = quantity / (bestMatch.servingSize || 100);
       } else if (unitFound === 'ml' && bestMatch.servingUnit.includes('ml')) {
         multiplier = quantity / (bestMatch.servingSize || 250);
       } else if (unitFound === 'g' && !bestMatch.servingUnit.includes('grams')) {
-        // e.g. "100g paneer"
         multiplier = quantity / 100;
       }
 
@@ -662,17 +673,16 @@ export function parseNaturalLanguageMeal(input: string): {
         isEstimated: false
       });
     } else {
-      // Transparent fallback estimation for unknown items
       unmatchedPhrases.push(segment);
       items.push({
         id: `est_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         name: segment.trim(),
-        quantity: quantity,
+        quantity: Math.round(quantity * 10) / 10,
         unit: unitFound || 'serving (estimated)',
-        calories: Math.round(180 * quantity),
-        protein: Math.round(5 * quantity),
-        carbs: Math.round(22 * quantity),
-        fats: Math.round(8 * quantity),
+        calories: Math.max(10, Math.round(180 * quantity)),
+        protein: Math.max(0, Math.round(5 * quantity)),
+        carbs: Math.max(0, Math.round(22 * quantity)),
+        fats: Math.max(0, Math.round(8 * quantity)),
         isEstimated: true
       });
     }
