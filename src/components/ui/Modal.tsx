@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -28,30 +29,42 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-[#080B14]/80 backdrop-blur-md transition-opacity"
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      {/* Apple Frosted Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/80 backdrop-blur-2xl transition-opacity"
         onClick={onClose}
       />
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg bg-[#151D30] border border-[#725CFF]/35 rounded-3xl p-5 shadow-[0_0_50px_rgba(114,92,255,0.2)] max-h-[90vh] overflow-y-auto no-scrollbar animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#725CFF]/15">
+
+      {/* Apple Spring Sheet / Dialog */}
+      <motion.div
+        initial={{ y: 30, opacity: 0, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 30, opacity: 0, scale: 0.96 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+        className="relative w-full max-w-lg bg-[#120D24]/95 border-t sm:border border-white/15 rounded-t-[32px] sm:rounded-[32px] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.85)] max-h-[90vh] overflow-y-auto no-scrollbar"
+      >
+        {/* Apple Drawer Grabber Handle */}
+        <div className="w-10 h-1.5 rounded-full bg-white/20 mx-auto mb-3 sm:hidden" />
+
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
           {title && (
-            <h2 className="font-display font-bold text-base tracking-wider uppercase text-[#F5F7FF]">
+            <h2 className="font-bold text-base tracking-tight text-white">
               {title}
             </h2>
           )}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full bg-[#101626] text-[#929DB5] hover:text-[#F5F7FF] border border-[#725CFF]/20 active:scale-90 transition-all"
+            className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white border border-white/10 active:scale-90 transition-all"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
         <div>{children}</div>
-      </div>
+      </motion.div>
     </div>
   );
 };
-

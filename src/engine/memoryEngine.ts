@@ -18,12 +18,14 @@ export async function addHunterMemory(
   tags: string[] = [],
   dayNumber: number = 1,
   moodScore: number = 5,
-  energyLevel: number = 5
+  energyLevel: number = 5,
+  userId?: string
 ): Promise<HunterMemoryEntry> {
   const todayStr = getTodayDateString();
   const xpAwarded = 50; // Reflection XP
 
   const memory: HunterMemoryEntry = {
+    userId,
     date: todayStr,
     dayNumber,
     title: title.trim(),
@@ -41,14 +43,22 @@ export async function addHunterMemory(
   return memory;
 }
 
-// Get all memories ordered by most recent
-export async function getAllHunterMemories(): Promise<HunterMemoryEntry[]> {
+// Get all memories ordered by most recent (optionally filtered by user)
+export async function getAllHunterMemories(userId?: string): Promise<HunterMemoryEntry[]> {
+  if (userId) {
+    const list = await db.hunterMemories.where('userId').equals(userId).toArray();
+    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
   return await db.hunterMemories.orderBy('createdAt').reverse().toArray();
 }
 
 // Get memories for a specific date or day
-export async function getMemoriesForDay(dayNumber: number): Promise<HunterMemoryEntry[]> {
-  return await db.hunterMemories.where('dayNumber').equals(dayNumber).toArray();
+export async function getMemoriesForDay(dayNumber: number, userId?: string): Promise<HunterMemoryEntry[]> {
+  const list = await db.hunterMemories.where('dayNumber').equals(dayNumber).toArray();
+  if (userId) {
+    return list.filter(m => !m.userId || m.userId === userId);
+  }
+  return list;
 }
 
 // Delete memory entry
@@ -56,11 +66,18 @@ export async function deleteHunterMemory(id: number): Promise<void> {
   await db.hunterMemories.delete(id);
 }
 
-// Seed initial memory entry if empty
-export async function seedInitialMemoryIfEmpty(userName: string): Promise<void> {
-  const count = await db.hunterMemories.count();
+// Seed initial memory entry if empty for user
+export async function seedInitialMemoryIfEmpty(userName: string, userId?: string): Promise<void> {
+  let count = 0;
+  if (userId) {
+    count = await db.hunterMemories.where('userId').equals(userId).count();
+  } else {
+    count = await db.hunterMemories.count();
+  }
+
   if (count === 0) {
     await db.hunterMemories.add({
+      userId,
       date: getTodayDateString(),
       dayNumber: 1,
       title: 'The Awakening: Day 01',

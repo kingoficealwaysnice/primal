@@ -1,8 +1,19 @@
 import { db, getTodayDateString } from '../db/database';
 import type { UserProfile, HunterStats } from '../types';
+import { getActiveUserId, DEFAULT_USER_ID } from './multiUserService';
 
 const SNAPSHOT_KEY = 'primal_hunter_vault_snapshot_v1';
 const SL_QUEST_KEY = 'primal_sl_quest_state_v1';
+
+const getScopedSnapshotKey = (userId?: string) => {
+  const uid = userId || getActiveUserId() || DEFAULT_USER_ID;
+  return `primal_hunter_vault_${uid}`;
+};
+
+const getScopedSLKey = (userId?: string) => {
+  const uid = userId || getActiveUserId() || DEFAULT_USER_ID;
+  return `primal_sl_quest_${uid}`;
+};
 
 export interface PersistentSnapshot {
   userProfile: UserProfile | null;
@@ -37,7 +48,7 @@ export async function enablePersistentStorage(): Promise<boolean> {
   return false;
 }
 
-// Save complete system snapshot to localStorage mirror
+// Save complete system snapshot to localStorage mirror (scoped to user)
 export function saveVaultSnapshot(
   profile: UserProfile | null,
   stats: HunterStats | null,
@@ -47,43 +58,64 @@ export function saveVaultSnapshot(
     squats: number;
     runningKm: number;
     completedDate: string | null;
-  }
+  },
+  userId?: string
 ): void {
   if (typeof window === 'undefined') return;
 
   try {
-    const existingQuests = getSavedSoloLevelingQuests();
+    const targetUserId = userId || profile?.userId || getActiveUserId() || DEFAULT_USER_ID;
+    const existingQuests = getSavedSoloLevelingQuests(targetUserId);
     const payload: PersistentSnapshot = {
       userProfile: profile,
       hunterStats: stats,
       slQuests: slQuests || existingQuests,
       lastSavedAt: new Date().toISOString()
     };
-    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(payload));
+    
+    // Save to user-scoped key
+    localStorage.setItem(getScopedSnapshotKey(targetUserId), JSON.stringify(payload));
+
+    // Also mirror to legacy key if primary user for backward compatibility
+    if (targetUserId === DEFAULT_USER_ID) {
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(payload));
+    }
   } catch (err) {
     console.warn('[PRIMAL SYSTEM] Failed to write vault snapshot:', err);
   }
 }
 
 // Clear vault snapshot (when user deliberately resets data)
-export function clearVaultSnapshot(): void {
+export function clearVaultSnapshot(userId?: string): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem(SNAPSHOT_KEY);
-    localStorage.removeItem(SL_QUEST_KEY);
+    const targetUserId = userId || getActiveUserId() || DEFAULT_USER_ID;
+    localStorage.removeItem(getScopedSnapshotKey(targetUserId));
+    localStorage.removeItem(getScopedSLKey(targetUserId));
+    if (targetUserId === DEFAULT_USER_ID) {
+      localStorage.removeItem(SNAPSHOT_KEY);
+      localStorage.removeItem(SL_QUEST_KEY);
+    }
   } catch (err) {
     console.warn('[PRIMAL SYSTEM] Failed to clear vault snapshot:', err);
   }
 }
 
-// Load vault snapshot from localStorage mirror
-export function loadVaultSnapshot(): PersistentSnapshot | null {
+// Load vault snapshot from localStorage mirror (scoped to user)
+export function loadVaultSnapshot(userId?: string): PersistentSnapshot | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(SNAPSHOT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const targetUserId = userId || getActiveUserId() || DEFAULT_USER_ID;
+    const scopedRaw = localStorage.getItem(getScopedSnapshotKey(targetUserId));
+    if (scopedRaw) return JSON.parse(scopedRaw);
+
+    // Fallback to legacy global key if primary
+    if (targetUserId === DEFAULT_USER_ID) {
+      const legacyRaw = localStorage.getItem(SNAPSHOT_KEY);
+      if (legacyRaw) return JSON.parse(legacyRaw);
+    }
+    return null;
   } catch (err) {
     console.warn('[PRIMAL SYSTEM] Failed to parse vault snapshot:', err);
     return null;
@@ -96,21 +128,25 @@ export function saveSoloLevelingQuests(
   situps: number,
   squats: number,
   runningKm: number,
-  completedDate: string | null
+  completedDate: string | null,
+  userId?: string
 ): void {
   if (typeof window === 'undefined') return;
 
   try {
+    const targetUserId = userId || getActiveUserId() || DEFAULT_USER_ID;
     const state = { pushups, situps, squats, runningKm, completedDate };
-    localStorage.setItem(SL_QUEST_KEY, JSON.stringify(state));
+    localStorage.setItem(getScopedSLKey(targetUserId), JSON.stringify(state));
 
-    // Also write individual keys for backward compatibility
-    localStorage.setItem('sl_quest_pushups', String(pushups));
-    localStorage.setItem('sl_quest_situps', String(situps));
-    localStorage.setItem('sl_quest_squats', String(squats));
-    localStorage.setItem('sl_quest_running', String(runningKm));
-    if (completedDate) {
-      localStorage.setItem('sl_quest_completed_today', completedDate);
+    if (targetUserId === DEFAULT_USER_ID) {
+      localStorage.setItem(SL_QUEST_KEY, JSON.stringify(state));
+      localStorage.setItem('sl_quest_pushups', String(pushups));
+      localStorage.setItem('sl_quest_situps', String(situps));
+      localStorage.setItem('sl_quest_squats', String(squats));
+      localStorage.setItem('sl_quest_running', String(runningKm));
+      if (completedDate) {
+        localStorage.setItem('sl_quest_completed_today', completedDate);
+      }
     }
   } catch (err) {
     console.warn('[PRIMAL SYSTEM] Failed to save SL quest state:', err);
@@ -118,7 +154,7 @@ export function saveSoloLevelingQuests(
 }
 
 // Retrieve Solo Leveling quest state
-export function getSavedSoloLevelingQuests(): {
+export function getSavedSoloLevelingQuests(userId?: string): {
   pushups: number;
   situps: number;
   squats: number;
@@ -136,25 +172,29 @@ export function getSavedSoloLevelingQuests(): {
   if (typeof window === 'undefined') return fallback;
 
   try {
-    const raw = localStorage.getItem(SL_QUEST_KEY);
-    if (raw) {
-      return JSON.parse(raw);
+    const targetUserId = userId || getActiveUserId() || DEFAULT_USER_ID;
+    const scopedRaw = localStorage.getItem(getScopedSLKey(targetUserId));
+    if (scopedRaw) return JSON.parse(scopedRaw);
+
+    if (targetUserId === DEFAULT_USER_ID) {
+      const raw = localStorage.getItem(SL_QUEST_KEY);
+      if (raw) return JSON.parse(raw);
+
+      const p = localStorage.getItem('sl_quest_pushups');
+      const s = localStorage.getItem('sl_quest_situps');
+      const sq = localStorage.getItem('sl_quest_squats');
+      const r = localStorage.getItem('sl_quest_running');
+      const c = localStorage.getItem('sl_quest_completed_today');
+
+      return {
+        pushups: p ? parseInt(p, 10) : 50,
+        situps: s ? parseInt(s, 10) : 50,
+        squats: sq ? parseInt(sq, 10) : 50,
+        runningKm: r ? parseFloat(r) : 5.0,
+        completedDate: c || null
+      };
     }
-
-    // Fallback to legacy individual keys
-    const p = localStorage.getItem('sl_quest_pushups');
-    const s = localStorage.getItem('sl_quest_situps');
-    const sq = localStorage.getItem('sl_quest_squats');
-    const r = localStorage.getItem('sl_quest_running');
-    const c = localStorage.getItem('sl_quest_completed_today');
-
-    return {
-      pushups: p ? parseInt(p, 10) : 50,
-      situps: s ? parseInt(s, 10) : 50,
-      squats: sq ? parseInt(sq, 10) : 50,
-      runningKm: r ? parseFloat(r) : 5.0,
-      completedDate: c || null
-    };
+    return fallback;
   } catch {
     return fallback;
   }

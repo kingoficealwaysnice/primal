@@ -5,25 +5,24 @@ import { SoloLevelingQuestModal } from '../../sololeveling/SoloLevelingQuestModa
 import { getSavedSoloLevelingQuests } from '../../../services/persistenceService';
 
 export const SoloLevelingDailyQuestsView: React.FC = () => {
-  const { userProfile } = useAppStore();
+  const { userProfile, activeUser } = useAppStore();
+  const currentUid = activeUser?.id || 'usr_primary';
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Sync state from persistent storage
-  const [pushups, setPushups] = useState<number>(() => getSavedSoloLevelingQuests().pushups);
-  const [situps, setSitups] = useState<number>(() => getSavedSoloLevelingQuests().situps);
-  const [squats, setSquats] = useState<number>(() => getSavedSoloLevelingQuests().squats);
-  const [runningKm, setRunningKm] = useState<number>(() => getSavedSoloLevelingQuests().runningKm);
+  // Sync state from persistent storage (encapsulated per user)
+  const [pushups, setPushups] = useState<number>(() => getSavedSoloLevelingQuests(currentUid).pushups);
+  const [situps, setSitups] = useState<number>(() => getSavedSoloLevelingQuests(currentUid).situps);
+  const [squats, setSquats] = useState<number>(() => getSavedSoloLevelingQuests(currentUid).squats);
+  const [runningKm, setRunningKm] = useState<number>(() => getSavedSoloLevelingQuests(currentUid).runningKm);
 
-  // Re-read storage whenever modal closes
+  // Re-read storage whenever modal closes or active user changes
   useEffect(() => {
-    if (!isModalOpen) {
-      const q = getSavedSoloLevelingQuests();
-      setPushups(q.pushups);
-      setSitups(q.situps);
-      setSquats(q.squats);
-      setRunningKm(q.runningKm);
-    }
-  }, [isModalOpen]);
+    const q = getSavedSoloLevelingQuests(currentUid);
+    setPushups(q.pushups);
+    setSitups(q.situps);
+    setSquats(q.squats);
+    setRunningKm(q.runningKm);
+  }, [isModalOpen, currentUid]);
 
   // Tasks in PLAN vs COMPLETED
   const allTasks = [

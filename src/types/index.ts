@@ -9,6 +9,7 @@ export interface DumbbellConfig {
 
 export interface UserProfile {
   id?: number;
+  userId?: string;
   fullName: string;
   age: number;
   dateOfBirth: string;
@@ -61,6 +62,7 @@ export type QuestType =
 
 export interface DailyQuest {
   id?: number;
+  userId?: string;
   date: string;
   type: QuestType;
   title: string;
@@ -86,6 +88,7 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'supplement
 
 export interface MealEntry {
   id?: number;
+  userId?: string;
   date: string;
   mealType: MealType;
   rawText?: string;
@@ -150,6 +153,7 @@ export interface WorkoutExerciseLog {
 
 export interface WorkoutSession {
   id?: number;
+  userId?: string;
   date: string;
   dayNumber: number;
   phaseNumber: number;
@@ -168,6 +172,7 @@ export interface WorkoutSession {
 
 export interface BodyMeasurement {
   id?: number;
+  userId?: string;
   date: string;
   weightKg: number;
   bodyFatPct?: number;
@@ -180,6 +185,7 @@ export interface BodyMeasurement {
 
 export interface WaterEntry {
   id?: number;
+  userId?: string;
   date: string;
   amountMl: number;
   timestamp: string;
@@ -187,6 +193,7 @@ export interface WaterEntry {
 
 export interface SleepEntry {
   id?: number;
+  userId?: string;
   date: string;
   sleepTime: string;
   wakeTime: string;
@@ -206,6 +213,7 @@ export interface SkincareProduct {
 
 export interface SkincareLog {
   id?: number;
+  userId?: string;
   date: string;
   morningCompleted: boolean;
   eveningCompleted: boolean;
@@ -215,6 +223,7 @@ export interface SkincareLog {
 
 export interface HunterStats {
   id?: number;
+  userId?: string;
   level: number;
   levelTitle: string;
   currentXP: number;
@@ -228,6 +237,7 @@ export interface HunterStats {
 
 export interface Achievement {
   id: string;
+  userId?: string;
   title: string;
   description: string;
   iconName: string;
@@ -238,6 +248,7 @@ export interface Achievement {
 
 export interface PhysiquePhoto {
   id?: number;
+  userId?: string;
   date: string;
   type: 'front' | 'side' | 'back' | 'face';
   imageDataUrl: string;
@@ -247,6 +258,7 @@ export interface PhysiquePhoto {
 
 export interface SystemNotification {
   id: string;
+  userId?: string;
   type: 'QUEST' | 'ALERT' | 'LEVEL_UP' | 'RECOVERY' | 'SYSTEM';
   title: string;
   message: string;
@@ -256,6 +268,7 @@ export interface SystemNotification {
 
 export interface DailyPerformanceReport {
   date: string;
+  userId?: string;
   dayNumber: number;
   workoutCompletionPct: number;
   nutritionCompletionPct: number;
@@ -276,6 +289,7 @@ export interface DailyPerformanceReport {
 
 export interface GoogleAuthUser {
   id: string;
+  userId?: string;
   email: string;
   name: string;
   picture?: string;
@@ -291,6 +305,7 @@ export type MemoryCategory = 'mindset' | 'physique' | 'workout' | 'nutrition' | 
 
 export interface HunterMemoryEntry {
   id?: number;
+  userId?: string;
   date: string;
   dayNumber: number;
   title: string;
@@ -302,5 +317,93 @@ export interface HunterMemoryEntry {
   xpAwarded?: number;
   createdAt: string;
 }
+
+// ==========================================
+// MULTI-USER & APPLE SHARE PROTOCOL TYPES
+// ==========================================
+
+export type AvatarColorTheme = 'violet' | 'cyan' | 'emerald' | 'amber' | 'rose';
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarColor: AvatarColorTheme;
+  avatarEmoji?: string;
+  level: number;
+  levelTitle: string;
+  shareCode: string; // e.g. 'PRML-HNTR-982F'
+  isPrimary?: boolean;
+  createdAt: string;
+  lastActiveAt: string;
+}
+
+export interface SharedHunterPayload {
+  shareVersion: string;
+  shareCode: string;
+  sharedAt: string;
+  user: {
+    id: string;
+    displayName: string;
+    avatarColor: AvatarColorTheme;
+    avatarEmoji?: string;
+    level: number;
+    levelTitle: string;
+    streakDays: number;
+    highestStreak: number;
+    totalLifetimeXP: number;
+    currentDay: number;
+    fitnessLevel: FitnessLevel;
+    equipmentType: EquipmentType;
+  };
+  todaySummary: {
+    date: string;
+    questsCompleted: number;
+    totalQuests: number;
+    caloriesConsumed: number;
+    caloriesTarget: number;
+    proteinConsumed: number;
+    proteinTarget: number;
+    waterConsumedMl: number;
+    waterTargetMl: number;
+    soloLevelingQuests: {
+      pushups: number;
+      situps: number;
+      squats: number;
+      runningKm: number;
+      completed: boolean;
+    };
+  };
+  rpgAttributes?: {
+    str: number;
+    agi: number;
+    vit: number;
+    int: number;
+    sen: number;
+    availablePoints: number;
+  };
+  recentMemories?: Array<{
+    title: string;
+    content: string;
+    category: string;
+    date: string;
+  }>;
+  cheerCount?: number;
+}
+
+export interface HunterAlly {
+  id: string;
+  shareCode: string;
+  displayName: string;
+  avatarColor: AvatarColorTheme;
+  avatarEmoji?: string;
+  level: number;
+  levelTitle: string;
+  streakDays: number;
+  cheersGiven: number;
+  lastInspectedAt: string;
+  payload: SharedHunterPayload;
+}
+
 
 

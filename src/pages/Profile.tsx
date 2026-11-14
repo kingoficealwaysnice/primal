@@ -10,11 +10,16 @@ import { HunterStatusWindow } from '../components/sololeveling/HunterStatusWindo
 import { EdgeCaseTester } from '../components/diagnostic/EdgeCaseTester';
 import { GoogleAuthModal } from '../components/auth/GoogleAuthModal';
 import { AwakenHeroScreen } from '../components/sololeveling/AwakenHeroScreen';
+import { AppleUserSwitcherModal } from '../components/apple/AppleUserSwitcherModal';
+import { AppleShareModal } from '../components/apple/AppleShareModal';
+import { AppleSharedDossierView } from '../components/apple/AppleSharedDossierView';
 import { exportAllData, importData, resetAllData } from '../utils/dataBackup';
 import { db } from '../db/database';
 import type { Achievement } from '../types';
 import {
   User,
+  Users,
+  Share2,
   Shield,
   Trophy,
   Dumbbell,
@@ -26,7 +31,8 @@ import {
   Zap,
   CheckCircle2,
   Lock,
-  Sparkles
+  Sparkles,
+  UserPlus
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
@@ -37,7 +43,11 @@ export const Profile: React.FC = () => {
     setEquipmentMode,
     saveUserProfile,
     reloadAllData,
-    googleUser
+    googleUser,
+    activeUser,
+    allUsers,
+    inspectingAlly,
+    setInspectingAlly
   } = useAppStore();
 
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -45,6 +55,9 @@ export const Profile: React.FC = () => {
   const [showEditTargetsModal, setShowEditTargetsModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [showAwakenHero, setShowAwakenHero] = useState(false);
+  const [showUserSwitcher, setShowUserSwitcher] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showAlliesDossier, setShowAlliesDossier] = useState(false);
 
   // Editable targets
   const [editCalories, setEditCalories] = useState(userProfile?.dailyCalorieTarget || 2100);
@@ -109,13 +122,33 @@ export const Profile: React.FC = () => {
         onClose={() => setShowGoogleModal(false)}
       />
 
+      <AppleUserSwitcherModal
+        isOpen={showUserSwitcher}
+        onClose={() => setShowUserSwitcher(false)}
+      />
+
+      <AppleShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        onOpenAlliesCircle={() => setShowAlliesDossier(true)}
+      />
+
+      {(showAlliesDossier || inspectingAlly !== null) && (
+        <AppleSharedDossierView
+          onClose={() => {
+            setShowAlliesDossier(false);
+            setInspectingAlly(null);
+          }}
+        />
+      )}
+
       {/* Hunter Identity Banner */}
       <div className="rounded-3xl bg-gradient-to-br from-[#151D30] to-[#101626] border border-[#725CFF]/35 p-5 shadow-[0_10px_35px_rgba(0,0,0,0.5)]">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#725CFF] to-[#00D4FF] p-0.5 shadow-[0_0_25px_rgba(114,92,255,0.4)] flex items-center justify-center">
             <div className="w-full h-full bg-[#080B14] rounded-[14px] flex items-center justify-center">
               <span className="font-display font-black text-2xl text-[#00D4FF]">
-                {userProfile.fullName[0].toUpperCase()}
+                {activeUser?.avatarEmoji || userProfile.fullName[0].toUpperCase()}
               </span>
             </div>
           </div>
@@ -125,7 +158,7 @@ export const Profile: React.FC = () => {
               HUNTER PROFILE
             </span>
             <h2 className="font-display font-black text-xl text-[#F5F7FF] uppercase tracking-wider">
-              {userProfile.fullName}
+              {activeUser?.displayName || userProfile.fullName}
             </h2>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs font-display font-bold uppercase text-[#725CFF] bg-[#725CFF]/15 px-2.5 py-0.5 rounded-full border border-[#725CFF]/30">
@@ -138,21 +171,89 @@ export const Profile: React.FC = () => {
         {/* Lifetime XP & Streak Bar */}
         <div className="mt-4 pt-3 border-t border-[#725CFF]/15 grid grid-cols-3 gap-2 text-center text-xs">
           <div className="p-2.5 rounded-xl bg-[#101626] border border-[#725CFF]/15">
-            <span className="text-[10px] text-[#929DB5] block">LIFETIME XP</span>
+            <span className="text-[10px] text-[#9D94B8] block">LIFETIME XP</span>
             <span className="font-display font-bold text-[#00D4FF] text-sm">{hunterStats.totalLifetimeXP}</span>
           </div>
           <div className="p-2.5 rounded-xl bg-[#101626] border border-[#725CFF]/15">
-            <span className="text-[10px] text-[#929DB5] block">STREAK</span>
+            <span className="text-[10px] text-[#9D94B8] block">STREAK</span>
             <span className="font-display font-bold text-[#FFB547] text-sm flex items-center justify-center gap-1">
               <Flame className="w-3.5 h-3.5 fill-[#FFB547]" /> {hunterStats.streakDays}d
             </span>
           </div>
           <div className="p-2.5 rounded-xl bg-[#101626] border border-[#725CFF]/15">
-            <span className="text-[10px] text-[#929DB5] block">TRANSFORMATION</span>
+            <span className="text-[10px] text-[#9D94B8] block">TRANSFORMATION</span>
             <span className="font-display font-bold text-[#27E58C] text-sm">
               Day {userProfile.currentDay}/90
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* APPLE FAST USER SWITCHING & MULTI-USER REGISTRATION */}
+      <div className="rounded-2xl border border-white/10 bg-[#140E29]/90 backdrop-blur-2xl p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#C084FC]/15 border border-[#C084FC]/30 flex items-center justify-center text-[#C084FC]">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xs text-white">
+                HUNTER ACCOUNTS & ENCAPSULATION
+              </span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#C084FC]/20 text-[#C084FC] font-bold">
+                {allUsers.length} REGISTERED
+              </span>
+            </div>
+            <p className="text-[11px] text-[#9D94B8] font-mono mt-0.5">
+              Active: {activeUser?.displayName} • Separate workouts, logs & stats
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowUserSwitcher(true)}
+          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#C084FC] to-[#7C3AED] hover:brightness-110 text-white font-semibold text-xs active:scale-95 transition-all shadow-sm flex items-center gap-1.5"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          <span>Switch / Add</span>
+        </button>
+      </div>
+
+      {/* SHARE PROTOCOL & ALLIES HUB */}
+      <div className="rounded-2xl border border-white/10 bg-[#120D24]/90 backdrop-blur-2xl p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/30 flex items-center justify-center text-[#38BDF8]">
+            <Share2 className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xs text-white">
+                SHARE PROTOCOL & HUNTER CIRCLE
+              </span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#38BDF8]/20 text-[#38BDF8] font-bold">
+                {activeUser?.shareCode || 'PASSCODE'}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#9D94B8] font-mono mt-0.5">
+              Share your live progress card or inspect allies
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="px-3 py-2 rounded-xl bg-[#38BDF8] hover:brightness-110 text-[#0A0714] font-bold text-xs active:scale-95 transition-all shadow-sm"
+          >
+            Share Data
+          </button>
+          <button
+            onClick={() => setShowAlliesDossier(true)}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/15 text-white active:scale-95 transition-all"
+            title="View Hunter Circle Allies"
+          >
+            <Users className="w-4 h-4 text-[#C084FC]" />
+          </button>
         </div>
       </div>
 

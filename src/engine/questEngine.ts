@@ -3,7 +3,9 @@ import { db, getTodayDateString } from '../db/database';
 
 export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<DailyQuest[]> {
   const todayStr = getTodayDateString();
-  const existingQuests = await db.dailyQuests.where('date').equals(todayStr).toArray();
+  const userId = profile.userId || 'usr_primary';
+  const allDateQuests = await db.dailyQuests.where('date').equals(todayStr).toArray();
+  const existingQuests = allDateQuests.filter(q => (q.userId || 'usr_primary') === userId);
 
   if (existingQuests && existingQuests.length > 0) {
     return existingQuests;
@@ -14,6 +16,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
 
   const questsToCreate: Omit<DailyQuest, 'id'>[] = [
     {
+      userId,
       date: todayStr,
       type: 'workout',
       title: 'Complete Daily Workout Quest',
@@ -22,6 +25,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'pushups',
       title: `Complete ${pushupTarget} Push-ups`,
@@ -30,6 +34,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'squats',
       title: `Complete ${squatTarget} Squats`,
@@ -38,6 +43,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'core',
       title: 'Complete Core & Anti-Rotation Work',
@@ -46,6 +52,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'walking',
       title: `Hit Walking Goal (${profile.dailyWalkingStepsTarget.toLocaleString()} steps)`,
@@ -54,6 +61,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'protein',
       title: `Hit Daily Protein Target (${profile.dailyProteinTarget}g)`,
@@ -62,6 +70,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'water',
       title: `Reach Hydration Target (${(profile.dailyWaterTargetMl / 1000).toFixed(1)}L)`,
@@ -70,6 +79,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'skincare_am',
       title: 'Complete Morning Skincare Ritual',
@@ -78,6 +88,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'skincare_pm',
       title: 'Complete Evening Skincare & Stretching',
@@ -86,6 +97,7 @@ export async function getOrGenerateDailyQuests(profile: UserProfile): Promise<Da
       completed: false
     },
     {
+      userId,
       date: todayStr,
       type: 'sleep',
       title: `Log ${profile.sleepTargetHours} Hours of Restorative Sleep`,

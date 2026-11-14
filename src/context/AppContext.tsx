@@ -9,7 +9,13 @@ import type {
   SystemNotification,
   GoogleAuthUser,
   HunterMemoryEntry,
-  MemoryCategory
+  MemoryCategory,
+  UserAccount,
+  SharedHunterPayload,
+  HunterAlly,
+  AvatarColorTheme,
+  FitnessLevel,
+  EquipmentType
 } from '../types';
 import { db, getTodayDateString } from '../db/database';
 import { getOrGenerateDailyQuests } from '../engine/questEngine';
@@ -23,10 +29,28 @@ import {
   loadVaultSnapshot,
   createDefaultAwakenedProfile
 } from '../services/persistenceService';
+import {
+  getActiveUserId,
+  setActiveUserId,
+  listUserAccounts,
+  getActiveUserAccount,
+  registerNewUser,
+  deleteUserAccount,
+  updateUserAccount,
+  DEFAULT_USER_ID,
+  generateSharePayload,
+  getSharedPayloadFromCurrentUrl,
+  getSavedAllies,
+  saveHunterAlly,
+  cheerHunterAlly,
+  getUserRPGAttributes,
+  getUserSoloLevelingQuests
+} from '../services/multiUserService';
 
 export type AppTab = 'home' | 'workout' | 'nutrition' | 'progress' | 'profile';
 
 interface AppContextType {
+  // Active User Profile & Stats (Encapsulated)
   userProfile: UserProfile | null;
   hunterStats: HunterStats | null;
   todayQuests: DailyQuest[];
@@ -39,7 +63,30 @@ interface AppContextType {
   equipmentMode: 'bodyweight' | 'dumbbell';
   isLoading: boolean;
   levelUpModal: { show: boolean; level: number; title: string } | null;
-  
+
+  // Multi-User Management
+  activeUser: UserAccount | null;
+  allUsers: UserAccount[];
+  switchActiveUser: (userId: string) => Promise<void>;
+  registerHunterUser: (
+    name: string,
+    options?: {
+      avatarColor?: AvatarColorTheme;
+      avatarEmoji?: string;
+      fitnessLevel?: FitnessLevel;
+      equipmentType?: EquipmentType;
+    }
+  ) => Promise<UserAccount>;
+  removeHunterAccount: (userId: string) => Promise<void>;
+
+  // Sharing & Hunter Circle (Encapsulated Peer Viewing)
+  inspectingAlly: SharedHunterPayload | null;
+  setInspectingAlly: (ally: SharedHunterPayload | null) => void;
+  allies: HunterAlly[];
+  generateCurrentSharePayload: () => SharedHunterPayload | null;
+  saveAllyToCircle: (payload: SharedHunterPayload) => Promise<HunterAlly>;
+  cheerAlly: (allyId: string) => Promise<number>;
+
   // Google Auth
   googleUser: GoogleAuthUser | null;
   setGoogleAuth: (user: GoogleAuthUser | null) => Promise<void>;
@@ -60,7 +107,7 @@ interface AppContextType {
   setCurrentTab: (tab: AppTab) => void;
   setEquipmentMode: (mode: 'bodyweight' | 'dumbbell') => void;
   dismissLevelUpModal: () => void;
-  reloadAllData: () => Promise<void>;
+  reloadAllData: (targetUserId?: string) => Promise<void>;
   saveUserProfile: (profile: UserProfile) => Promise<void>;
   toggleQuestCompletion: (questId: number) => Promise<void>;
   logWaterIntake: (amountMl: number) => Promise<void>;
@@ -76,6 +123,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeUser, setActiveUser] = useState<UserAccount | null>(null);
+  const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [hunterStats, setHunterStats] = useState<HunterStats | null>(null);
   const [todayQuests, setTodayQuests] = useState<DailyQuest[]>([]);
@@ -89,61 +138,90 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [levelUpModal, setLevelUpModal] = useState<{ show: boolean; level: number; title: string } | null>(null);
 
+  // Sharing & Peer Ally state
+  const [inspectingAlly, setInspectingAlly] = useState<SharedHunterPayload | null>(null);
+  const [allies, setAllies] = useState<HunterAlly[]>([]);
+
   // Google Auth state
   const [googleUser, setGoogleUser] = useState<GoogleAuthUser | null>(null);
 
   // Hunter Memory state
   const [memories, setMemories] = useState<HunterMemoryEntry[]>([]);
 
-  // Load all user and daily state from IndexedDB with permanent storage recovery
-  const reloadAllData = useCallback(async () => {
+  // Load all user and daily state from IndexedDB with permanent storage recovery (Scoped to targetUserId)
+  const reloadAllData = useCallback(async (targetUserId?: string) => {
     try {
       const todayStr = getTodayDateString();
+      const currentUid = targetUserId || getActiveUserId() || DEFAULT_USER_ID;
 
-      // 1. Google Auth state
+      // 1. Load User Accounts
+      const accounts = await listUserAccounts();
+      setAllUsers(accounts);
+      const currentAccount = accounts.find(a => a.id === currentUid) || accounts[0];
+      setActiveUser(currentAccount);
+
+      // 2. Load Saved Allies Circle
+      const savedAlliesList = await getSavedAllies();
+      setAllies(savedAlliesList);
+
+      // 3. Google Auth state
       const savedGoogleUser = await db.googleAuth.toCollection().first();
       if (savedGoogleUser) {
         setGoogleUser(savedGoogleUser);
       }
 
-      // 2. User Profile: check IndexedDB, then check localStorage vault snapshot, then initialize default
-      let profile = await db.userProfile.toCollection().first();
+      // 4. User Profile (Encapsulated: query by currentUid)
+      let profile: UserProfile | undefined;
+      const allProfiles = await db.userProfile.toArray();
+      profile = allProfiles.find(p => (p.userId || DEFAULT_USER_ID) === currentUid);
+
       if (!profile) {
-        const snapshot = loadVaultSnapshot();
+        const snapshot = loadVaultSnapshot(currentUid);
         if (snapshot?.userProfile) {
-          profile = snapshot.userProfile;
+          profile = { ...snapshot.userProfile, userId: currentUid };
           const id = await db.userProfile.add(profile);
           profile.id = id;
         } else {
-          // Initialize Awakened Hunter baseline so data NEVER resets on fresh launch
-          profile = createDefaultAwakenedProfile(savedGoogleUser?.name || 'Bhanu');
+          // Initialize Awakened Hunter baseline for this user
+          profile = createDefaultAwakenedProfile(currentAccount?.displayName || 'Hunter');
+          profile.userId = currentUid;
           const id = await db.userProfile.add(profile);
           profile.id = id;
         }
+      } else if (!profile.userId) {
+        profile.userId = currentUid;
+        await db.userProfile.put(profile);
       }
       setUserProfile(profile);
 
-      // Seed initial memory chronicle if empty
-      await seedInitialMemoryIfEmpty(profile?.fullName || savedGoogleUser?.name || 'Bhanu');
+      // Seed initial memory chronicle if empty for this user
+      await seedInitialMemoryIfEmpty(profile?.fullName || currentAccount?.displayName || 'Hunter', currentUid);
 
-      // 3. Load Memories
-      const memoryList = await db.hunterMemories.orderBy('createdAt').reverse().toArray();
-      setMemories(memoryList);
+      // 5. Load Memories (Scoped to currentUid)
+      const allMemories = await db.hunterMemories.toArray();
+      const userMemories = allMemories
+        .filter(m => (m.userId || DEFAULT_USER_ID) === currentUid)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setMemories(userMemories);
 
       setEquipmentMode(profile.equipmentType === 'dumbbells' ? 'dumbbell' : 'bodyweight');
 
-      // 4. Hunter Stats: retrieve or restore from snapshot
-      let stats = await db.hunterStats.toCollection().first();
+      // 6. Hunter Stats (Encapsulated: query by currentUid)
+      let stats: HunterStats | undefined;
+      const allStats = await db.hunterStats.toArray();
+      stats = allStats.find(s => (s.userId || DEFAULT_USER_ID) === currentUid);
+
       if (!stats) {
-        const snapshot = loadVaultSnapshot();
+        const snapshot = loadVaultSnapshot(currentUid);
         if (snapshot?.hunterStats) {
-          stats = snapshot.hunterStats;
+          stats = { ...snapshot.hunterStats, userId: currentUid };
           const id = await db.hunterStats.add(stats);
           stats.id = id;
         } else {
           stats = {
+            userId: currentUid,
             level: 1,
-            levelTitle: 'AWAKENED',
+            levelTitle: 'AWAKENED HUNTER',
             currentXP: 120,
             xpForNextLevel: 500,
             totalLifetimeXP: 120,
@@ -155,11 +233,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const statsId = await db.hunterStats.add(stats);
           stats.id = statsId;
         }
+      } else if (!stats.userId) {
+        stats.userId = currentUid;
+        await db.hunterStats.put(stats);
       }
       setHunterStats(stats);
 
       // Save initial snapshot to guarantee unresettable mirror
-      saveVaultSnapshot(profile, stats);
+      saveVaultSnapshot(profile, stats, undefined, currentUid);
 
       // Seed achievements if empty
       const achCount = await db.achievements.count();
@@ -173,11 +254,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await db.skincareProducts.bulkAdd(DEFAULT_SKINCARE_PRODUCTS);
       }
 
-      // 5. Daily Quests
+      // 7. Daily Quests (Encapsulated)
       const quests = await getOrGenerateDailyQuests(profile);
       setTodayQuests(quests);
 
-      // 6. Today's Workout
+      // 8. Today's Workout
       const workout = await getOrGenerateTodayWorkout(
         profile.currentDay || 1,
         profile.fitnessLevel || 'beginner',
@@ -186,22 +267,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       setTodayWorkout(workout);
 
-      // 7. Meals
-      const meals = await db.mealEntries.where('date').equals(todayStr).toArray();
-      setTodayMeals(meals);
+      // 9. Meals (Scoped to currentUid & date)
+      const dateMeals = await db.mealEntries.where('date').equals(todayStr).toArray();
+      const userMeals = dateMeals.filter(m => (m.userId || DEFAULT_USER_ID) === currentUid);
+      setTodayMeals(userMeals);
 
-      // 8. Water
-      const waterEntries = await db.waterEntries.where('date').equals(todayStr).toArray();
-      const totalWater = waterEntries.reduce((sum, w) => sum + w.amountMl, 0);
+      // 10. Water (Scoped to currentUid & date)
+      const dateWater = await db.waterEntries.where('date').equals(todayStr).toArray();
+      const userWater = dateWater.filter(w => (w.userId || DEFAULT_USER_ID) === currentUid);
+      const totalWater = userWater.reduce((sum, w) => sum + w.amountMl, 0);
       setTodayWaterMl(totalWater);
 
-      // 9. Skincare
-      const skincare = await db.skincareLogs.where('date').equals(todayStr).first();
-      setTodaySkincare(skincare || null);
+      // 11. Skincare (Scoped to currentUid & date)
+      const dateSkincare = await db.skincareLogs.where('date').equals(todayStr).toArray();
+      const userSkincare = dateSkincare.find(s => (s.userId || DEFAULT_USER_ID) === currentUid);
+      setTodaySkincare(userSkincare || null);
 
-      // 10. Notifications
-      const notifs = await db.notifications.orderBy('timestamp').reverse().limit(20).toArray();
-      setNotifications(notifs);
+      // 12. Notifications (Scoped to currentUid)
+      const allNotifs = await db.notifications.orderBy('timestamp').reverse().toArray();
+      const userNotifs = allNotifs.filter(n => !n.userId || n.userId === currentUid).slice(0, 20);
+      setNotifications(userNotifs);
 
     } catch (err) {
       console.error('Error loading PRIMAL SYSTEM data:', err);
@@ -210,24 +295,113 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  // Initialize and check for URL share payload
   useEffect(() => {
     enablePersistentStorage();
     reloadAllData();
+
+    // Check if URL has a shared hunter profile (?share=... or #share=...)
+    const sharedFromUrl = getSharedPayloadFromCurrentUrl();
+    if (sharedFromUrl) {
+      setInspectingAlly(sharedFromUrl);
+    }
   }, [reloadAllData]);
+
+  // Fast User Switching with Apple Fluidity
+  const switchActiveUser = async (newUserId: string) => {
+    setIsLoading(true);
+    setActiveUserId(newUserId);
+    await reloadAllData(newUserId);
+  };
+
+  // Register New Hunter User
+  const registerHunterUser = async (
+    name: string,
+    options?: {
+      avatarColor?: AvatarColorTheme;
+      avatarEmoji?: string;
+      fitnessLevel?: FitnessLevel;
+      equipmentType?: EquipmentType;
+    }
+  ): Promise<UserAccount> => {
+    const newAccount = await registerNewUser(name, options);
+    // Create new profile for this user
+    const newProfile = createDefaultAwakenedProfile(newAccount.displayName);
+    newProfile.userId = newAccount.id;
+    if (options?.fitnessLevel) newProfile.fitnessLevel = options.fitnessLevel;
+    if (options?.equipmentType) newProfile.equipmentType = options.equipmentType;
+
+    const profileId = await db.userProfile.add(newProfile);
+    newProfile.id = profileId;
+
+    // Switch to new user
+    await switchActiveUser(newAccount.id);
+
+    await addNotification(
+      'NEW HUNTER AWAKENED',
+      `Hunter identity registered: ${newAccount.displayName} (Passcode: ${newAccount.shareCode}). Protocol isolated.`,
+      'SYSTEM'
+    );
+
+    return newAccount;
+  };
+
+  // Remove Hunter User Account
+  const removeHunterAccount = async (targetUserId: string) => {
+    await deleteUserAccount(targetUserId);
+    await reloadAllData();
+  };
+
+  // Generate Current Hunter Share Payload
+  const generateCurrentSharePayload = (): SharedHunterPayload | null => {
+    if (!userProfile || !hunterStats || !activeUser) return null;
+    const rpgAttrs = getUserRPGAttributes(activeUser.id);
+    const soloQuests = getUserSoloLevelingQuests(activeUser.id);
+
+    return generateSharePayload(
+      userProfile,
+      hunterStats,
+      todayMeals,
+      todayWaterMl,
+      todayQuests,
+      rpgAttrs,
+      soloQuests,
+      memories,
+      activeUser
+    );
+  };
+
+  // Save an Ally to the Hunter Circle
+  const saveAllyToCircle = async (payload: SharedHunterPayload): Promise<HunterAlly> => {
+    const saved = await saveHunterAlly(payload);
+    const updated = await getSavedAllies();
+    setAllies(updated);
+    return saved;
+  };
+
+  // Send a Resonance Cheer to an Ally
+  const cheerAlly = async (allyId: string): Promise<number> => {
+    const count = await cheerHunterAlly(allyId);
+    const updated = await getSavedAllies();
+    setAllies(updated);
+    return count;
+  };
 
   // Google Auth Sign-in / Sign-out
   const setGoogleAuth = async (user: GoogleAuthUser | null) => {
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
     if (user) {
+      user.userId = currentUid;
       await db.googleAuth.clear();
       await db.googleAuth.put(user);
       setGoogleUser(user);
 
-      // If userProfile exists without name, update with Google name
       if (userProfile && !userProfile.fullName) {
         userProfile.fullName = user.name;
+        userProfile.userId = currentUid;
         await db.userProfile.put(userProfile);
         setUserProfile({ ...userProfile });
-        saveVaultSnapshot(userProfile, hunterStats);
+        saveVaultSnapshot(userProfile, hunterStats, undefined, currentUid);
       }
 
       await addNotification(
@@ -246,7 +420,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Memory Feature: Save memory entry
+  // Memory Feature: Save memory entry (Encapsulated)
   const saveMemory = async (
     title: string,
     content: string,
@@ -255,8 +429,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     moodScore: number = 5,
     energyLevel: number = 5
   ): Promise<HunterMemoryEntry> => {
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
     const day = userProfile?.currentDay || 1;
-    const entry = await addHunterMemory(title, content, category, tags, day, moodScore, energyLevel);
+    const entry = await addHunterMemory(title, content, category, tags, day, moodScore, energyLevel, currentUid);
     setMemories(prev => [entry, ...prev]);
 
     // Award +50 XP for discipline & reflection
@@ -277,35 +452,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMemories(prev => prev.filter(m => m.id !== id));
   };
 
-  // Save profile and trigger initialization with auto-snapshot
+  // Save profile and trigger initialization with auto-snapshot (Encapsulated)
   const saveUserProfile = async (profile: UserProfile) => {
-    await db.userProfile.clear();
-    const id = await db.userProfile.add(profile);
-    profile.id = id;
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
+    profile.userId = currentUid;
+
+    if (profile.id) {
+      await db.userProfile.put(profile);
+    } else {
+      const id = await db.userProfile.add(profile);
+      profile.id = id;
+    }
     setUserProfile(profile);
 
-    saveVaultSnapshot(profile, hunterStats);
+    // Also update account display name if changed
+    if (activeUser && profile.fullName && profile.fullName !== activeUser.displayName) {
+      await updateUserAccount(currentUid, { displayName: profile.fullName });
+      const updatedAccounts = await listUserAccounts();
+      setAllUsers(updatedAccounts);
+      const match = updatedAccounts.find(a => a.id === currentUid);
+      if (match) setActiveUser(match);
+    }
 
-    // Initial notification
+    saveVaultSnapshot(profile, hunterStats, undefined, currentUid);
+
     await addNotification(
-      'HUNTER AWAKENED',
-      'The 90-day transformation protocol is active. Complete today\'s quests to begin your ascent.',
+      'HUNTER ASCENT UPDATED',
+      'Profile biometrics and protocol parameters recalibrated.',
       'SYSTEM'
     );
 
-    await reloadAllData();
+    await reloadAllData(currentUid);
   };
 
-  // Grant XP with level-up detection and vault snapshotting
+  // Grant XP with level-up detection and vault snapshotting (Encapsulated)
   const grantXP = async (amount: number, reason?: string) => {
     if (!hunterStats) return;
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
 
     const { updatedStats, didLevelUp, newLevelTitle, newLevelNumber } = calculateNewStats(hunterStats, amount);
+    updatedStats.userId = currentUid;
+
     if (hunterStats.id) {
       await db.hunterStats.update(hunterStats.id, updatedStats);
+    } else {
+      await db.hunterStats.put(updatedStats);
     }
     setHunterStats(updatedStats);
-    saveVaultSnapshot(userProfile, updatedStats);
+    saveVaultSnapshot(userProfile, updatedStats, undefined, currentUid);
+
+    // Update level on account
+    if (activeUser && updatedStats.level !== activeUser.level) {
+      await updateUserAccount(currentUid, {
+        level: updatedStats.level,
+        levelTitle: updatedStats.levelTitle
+      });
+      const accounts = await listUserAccounts();
+      setAllUsers(accounts);
+      const updated = accounts.find(a => a.id === currentUid);
+      if (updated) setActiveUser(updated);
+    }
 
     if (reason) {
       console.log(`[XP +${amount}] ${reason}`);
@@ -321,7 +527,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Toggle Quest
+  // Toggle Quest (Encapsulated)
   const toggleQuestCompletion = async (questId: number) => {
     const quest = todayQuests.find(q => q.id === questId);
     if (!quest) return;
@@ -340,10 +546,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Water intake
+  // Water intake (Encapsulated)
   const logWaterIntake = async (amountMl: number) => {
     const todayStr = getTodayDateString();
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
+
     await db.waterEntries.add({
+      userId: currentUid,
       date: todayStr,
       amountMl,
       timestamp: new Date().toISOString()
@@ -363,10 +572,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Log Meal
+  // Log Meal (Encapsulated)
   const logMeal = async (meal: Omit<MealEntry, 'id'>) => {
-    const id = await db.mealEntries.add(meal as MealEntry);
-    const newMeal = { ...meal, id };
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
+    const toSave: MealEntry = { ...meal, userId: currentUid };
+    const id = await db.mealEntries.add(toSave);
+    const newMeal = { ...toSave, id };
     const updatedMeals = [...todayMeals, newMeal];
     setTodayMeals(updatedMeals);
 
@@ -388,8 +599,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTodayMeals(prev => prev.filter(m => m.id !== mealId));
   };
 
-  // Save Workout Session
+  // Save Workout Session (Encapsulated)
   const saveWorkoutSession = async (workout: WorkoutSession) => {
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
+    workout.userId = currentUid;
+
     if (workout.id) {
       await db.workoutSessions.put(workout);
     } else {
@@ -398,7 +612,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setTodayWorkout(workout);
 
-    // If completed, check workout quest
     if (workout.completed) {
       const workoutQuest = todayQuests.find(q => q.type === 'workout');
       if (workoutQuest && !workoutQuest.completed && workoutQuest.id) {
@@ -408,12 +621,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Update Skincare
+  // Update Skincare (Encapsulated)
   const updateSkincareStatus = async (morning: boolean, evening: boolean) => {
     const todayStr = getTodayDateString();
-    const existing = await db.skincareLogs.where('date').equals(todayStr).first();
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
+
+    const existingLogs = await db.skincareLogs.where('date').equals(todayStr).toArray();
+    const existing = existingLogs.find(l => (l.userId || DEFAULT_USER_ID) === currentUid);
 
     const newLog: SkincareLog = {
+      userId: currentUid,
       date: todayStr,
       morningCompleted: morning,
       eveningCompleted: evening,
@@ -444,10 +661,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Add notification
+  // Add notification (Encapsulated)
   const addNotification = async (title: string, message: string, type: SystemNotification['type'] = 'SYSTEM') => {
+    const currentUid = activeUser?.id || getActiveUserId() || DEFAULT_USER_ID;
     const notif: SystemNotification = {
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      userId: currentUid,
       title,
       message,
       type,
@@ -480,6 +699,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         equipmentMode,
         isLoading,
         levelUpModal,
+        activeUser,
+        allUsers,
+        switchActiveUser,
+        registerHunterUser,
+        removeHunterAccount,
+        inspectingAlly,
+        setInspectingAlly,
+        allies,
+        generateCurrentSharePayload,
+        saveAllyToCircle,
+        cheerAlly,
         googleUser,
         setGoogleAuth,
         memories,

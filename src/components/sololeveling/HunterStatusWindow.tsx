@@ -1,42 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../context/AppContext';
+import { getUserRPGAttributes, saveUserRPGAttributes } from '../../services/multiUserService';
 import { Shield, Zap, Heart, Activity, Award, Plus, Sparkles } from 'lucide-react';
 
 export const HunterStatusWindow: React.FC = () => {
-  const { hunterStats, userProfile, todayWaterMl, todayWorkout } = useAppStore();
+  const { hunterStats, userProfile, todayWaterMl, todayWorkout, activeUser } = useAppStore();
+  const currentUid = activeUser?.id || 'usr_primary';
 
-  // RPG Attributes state (persisted in localStorage)
-  const [str, setStr] = useState<number>(() => {
-    const s = localStorage.getItem('sl_stat_str');
-    return s ? parseInt(s, 10) : 35;
-  });
-  const [agi, setAgi] = useState<number>(() => {
-    const s = localStorage.getItem('sl_stat_agi');
-    return s ? parseInt(s, 10) : 28;
-  });
-  const [vit, setVit] = useState<number>(() => {
-    const s = localStorage.getItem('sl_stat_vit');
-    return s ? parseInt(s, 10) : 32;
-  });
-  const [int, setInt] = useState<number>(() => {
-    const s = localStorage.getItem('sl_stat_int');
-    return s ? parseInt(s, 10) : 25;
-  });
-  const [sen, setSen] = useState<number>(() => {
-    const s = localStorage.getItem('sl_stat_sen');
-    return s ? parseInt(s, 10) : 27;
-  });
-  const [availablePoints, setAvailablePoints] = useState<number>(() => {
-    const s = localStorage.getItem('sl_stat_available');
-    return s ? parseInt(s, 10) : 12;
-  });
+  // RPG Attributes state (encapsulated per user)
+  const [attrs, setAttrs] = useState(() => getUserRPGAttributes(currentUid));
 
-  const [jobTitle, setJobTitle] = useState<string>(() => {
-    return localStorage.getItem('sl_hunter_job') || 'None';
-  });
-  const [titleName, setTitleName] = useState<string>(() => {
-    return localStorage.getItem('sl_hunter_title') || 'One Who Overcame Adversity';
-  });
+  useEffect(() => {
+    setAttrs(getUserRPGAttributes(currentUid));
+  }, [currentUid]);
+
+  const { str, agi, vit, int, sen, availablePoints, jobTitle, titleName } = attrs;
 
   // Calculate dynamic HP / MP / Fatigue
   const level = hunterStats?.level || 1;
@@ -52,30 +30,13 @@ export const HunterStatusWindow: React.FC = () => {
   const allocatePoint = (stat: 'str' | 'agi' | 'vit' | 'int' | 'sen') => {
     if (availablePoints <= 0) return;
     const nextPoints = availablePoints - 1;
-    setAvailablePoints(nextPoints);
-    localStorage.setItem('sl_stat_available', String(nextPoints));
-
-    if (stat === 'str') {
-      const v = str + 1;
-      setStr(v);
-      localStorage.setItem('sl_stat_str', String(v));
-    } else if (stat === 'agi') {
-      const v = agi + 1;
-      setAgi(v);
-      localStorage.setItem('sl_stat_agi', String(v));
-    } else if (stat === 'vit') {
-      const v = vit + 1;
-      setVit(v);
-      localStorage.setItem('sl_stat_vit', String(v));
-    } else if (stat === 'int') {
-      const v = int + 1;
-      setInt(v);
-      localStorage.setItem('sl_stat_int', String(v));
-    } else if (stat === 'sen') {
-      const v = sen + 1;
-      setSen(v);
-      localStorage.setItem('sl_stat_sen', String(v));
-    }
+    const updated = {
+      ...attrs,
+      [stat]: attrs[stat] + 1,
+      availablePoints: nextPoints
+    };
+    setAttrs(updated);
+    saveUserRPGAttributes(currentUid, updated);
   };
 
   return (

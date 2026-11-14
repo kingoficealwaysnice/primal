@@ -15,11 +15,14 @@ import type {
   SystemNotification,
   DailyPerformanceReport,
   GoogleAuthUser,
-  HunterMemoryEntry
+  HunterMemoryEntry,
+  UserAccount,
+  HunterAlly
 } from '../types';
 
 export interface ExerciseHistoryRecord {
   id?: number;
+  userId?: string;
   date: string;
   exerciseId: string;
   exerciseName: string;
@@ -30,6 +33,7 @@ export interface ExerciseHistoryRecord {
 }
 
 export class PrimalDatabase extends Dexie {
+  userAccounts!: Table<UserAccount, string>;
   userProfile!: Table<UserProfile, number>;
   dailyQuests!: Table<DailyQuest, number>;
   mealEntries!: Table<MealEntry, number>;
@@ -47,6 +51,7 @@ export class PrimalDatabase extends Dexie {
   dailyReports!: Table<DailyPerformanceReport, string>;
   hunterMemories!: Table<HunterMemoryEntry, number>;
   googleAuth!: Table<GoogleAuthUser, string>;
+  hunterAllies!: Table<HunterAlly, string>;
 
   constructor() {
     super('PrimalSystemDB');
@@ -68,6 +73,56 @@ export class PrimalDatabase extends Dexie {
       dailyReports: 'date, dayNumber',
       hunterMemories: '++id, date, dayNumber, category, createdAt',
       googleAuth: 'id, email'
+    });
+
+    this.version(2).stores({
+      userAccounts: 'id, username, shareCode, lastActiveAt',
+      userProfile: '++id, userId, isOnboarded',
+      dailyQuests: '++id, userId, date, type, completed',
+      mealEntries: '++id, userId, date, mealType',
+      workoutSessions: '++id, userId, date, dayNumber',
+      bodyMeasurements: '++id, userId, date',
+      waterEntries: '++id, userId, date',
+      sleepEntries: '++id, userId, date',
+      skincareLogs: '++id, userId, date',
+      skincareProducts: 'id, timeOfDay',
+      hunterStats: '++id, userId',
+      achievements: 'id, userId, unlockedAt',
+      physiquePhotos: '++id, userId, date, type, milestoneDay',
+      notifications: 'id, userId, timestamp, read',
+      exerciseHistory: '++id, userId, exerciseId, date',
+      dailyReports: 'date, userId, dayNumber',
+      hunterMemories: '++id, userId, date, dayNumber, category, createdAt',
+      googleAuth: 'id, userId, email',
+      hunterAllies: 'id, shareCode, lastInspectedAt'
+    }).upgrade(async tx => {
+      const defaultUserId = 'usr_primary';
+      const tables = [
+        'userProfile',
+        'dailyQuests',
+        'mealEntries',
+        'workoutSessions',
+        'bodyMeasurements',
+        'waterEntries',
+        'sleepEntries',
+        'skincareLogs',
+        'hunterStats',
+        'notifications',
+        'hunterMemories',
+        'googleAuth'
+      ];
+      for (const tName of tables) {
+        try {
+          const table = tx.table(tName);
+          await table.toCollection().modify((record: any) => {
+            if (!record.userId) {
+              record.userId = defaultUserId;
+            }
+          });
+        } catch {
+          // table might not exist yet or empty
+        }
+      }
     });
   }
 }

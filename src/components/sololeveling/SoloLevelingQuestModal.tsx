@@ -14,13 +14,23 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const { grantXP } = useAppStore();
+  const { grantXP, activeUser } = useAppStore();
+  const currentUid = activeUser?.id || 'usr_primary';
 
-  const savedQuests = getSavedSoloLevelingQuests();
+  const savedQuests = getSavedSoloLevelingQuests(currentUid);
   const [pushups, setPushups] = useState<number>(savedQuests.pushups);
   const [situps, setSitups] = useState<number>(savedQuests.situps);
   const [squats, setSquats] = useState<number>(savedQuests.squats);
   const [runningKm, setRunningKm] = useState<number>(savedQuests.runningKm);
+
+  useEffect(() => {
+    const q = getSavedSoloLevelingQuests(currentUid);
+    setPushups(q.pushups);
+    setSitups(q.situps);
+    setSquats(q.squats);
+    setRunningKm(q.runningKm);
+    setIsCompleted(q.completedDate === getTodayDateString());
+  }, [currentUid, isOpen]);
 
   const [isCompleted, setIsCompleted] = useState<boolean>(() => {
     return savedQuests.completedDate === getTodayDateString();
@@ -58,7 +68,7 @@ export const SoloLevelingQuestModal: React.FC<SoloLevelingQuestModalProps> = ({
   }, []);
 
   const saveProgress = (p: number, s: number, sq: number, r: number) => {
-    saveSoloLevelingQuests(p, s, sq, r, isCompleted ? getTodayDateString() : null);
+    saveSoloLevelingQuests(p, s, sq, r, isCompleted ? getTodayDateString() : null, currentUid);
   };
 
   const addPushups = (amt: number) => {
