@@ -49,6 +49,13 @@ import {
 
 export type AppTab = 'home' | 'workout' | 'nutrition' | 'progress' | 'profile';
 
+export interface DynamicIslandAlert {
+  title: string;
+  subtitle?: string;
+  icon?: string;
+  type?: 'xp' | 'water' | 'quest' | 'user' | 'alert';
+}
+
 interface AppContextType {
   // Active User Profile & Stats (Encapsulated)
   userProfile: UserProfile | null;
@@ -63,6 +70,10 @@ interface AppContextType {
   equipmentMode: 'bodyweight' | 'dumbbell';
   isLoading: boolean;
   levelUpModal: { show: boolean; level: number; title: string } | null;
+
+  // iOS Dynamic Island Live Alert
+  islandAlert: DynamicIslandAlert | null;
+  triggerIslandAlert: (alert: DynamicIslandAlert) => void;
 
   // Multi-User Management
   activeUser: UserAccount | null;
@@ -137,6 +148,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [equipmentMode, setEquipmentMode] = useState<'bodyweight' | 'dumbbell'>('bodyweight');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [levelUpModal, setLevelUpModal] = useState<{ show: boolean; level: number; title: string } | null>(null);
+
+  // Dynamic Island Alert State
+  const [islandAlert, setIslandAlert] = useState<DynamicIslandAlert | null>(null);
+
+  const triggerIslandAlert = useCallback((alert: DynamicIslandAlert) => {
+    setIslandAlert(alert);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate([15]); } catch {}
+    }
+    setTimeout(() => {
+      setIslandAlert(curr => (curr?.title === alert.title ? null : curr));
+    }, 2800);
+  }, []);
 
   // Sharing & Peer Ally state
   const [inspectingAlly, setInspectingAlly] = useState<SharedHunterPayload | null>(null);
@@ -312,6 +336,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsLoading(true);
     setActiveUserId(newUserId);
     await reloadAllData(newUserId);
+    const accounts = await listUserAccounts();
+    const target = accounts.find(a => a.id === newUserId);
+    triggerIslandAlert({
+      title: target?.displayName ? `Hunter: ${target.displayName}` : 'Hunter Switched',
+      subtitle: `LVL 0${target?.level || 1} • Protocol Active`,
+      icon: target?.avatarEmoji || '🛡️',
+      type: 'user'
+    });
   };
 
   // Register New Hunter User
@@ -519,6 +551,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (didLevelUp && newLevelNumber && newLevelTitle) {
       setLevelUpModal({ show: true, level: newLevelNumber, title: newLevelTitle });
+      triggerIslandAlert({
+        title: `LEVEL UP: LVL ${newLevelNumber}`,
+        subtitle: newLevelTitle,
+        icon: '👑',
+        type: 'xp'
+      });
       await addNotification(
         'LEVEL UP DETECTED',
         `Congratulations, Hunter! You have ascended to LEVEL ${newLevelNumber}: ${newLevelTitle}!`,
@@ -542,6 +580,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     if (newCompleted) {
+      triggerIslandAlert({
+        title: 'Quest Completed!',
+        subtitle: `+${quest.xpReward} XP: ${quest.title}`,
+        icon: '⚡',
+        type: 'quest'
+      });
       await grantXP(quest.xpReward, `Completed quest: ${quest.title}`);
     }
   };
@@ -560,6 +604,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newTotal = todayWaterMl + amountMl;
     setTodayWaterMl(newTotal);
+
+    triggerIslandAlert({
+      title: `+${amountMl}ml Hydrated`,
+      subtitle: `Today: ${(newTotal / 1000).toFixed(2)}L logged`,
+      icon: '💧',
+      type: 'water'
+    });
 
     await grantXP(10, `Hydration logged (+${amountMl}ml)`);
 
@@ -699,6 +750,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         equipmentMode,
         isLoading,
         levelUpModal,
+        islandAlert,
+        triggerIslandAlert,
         activeUser,
         allUsers,
         switchActiveUser,

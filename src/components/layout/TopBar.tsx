@@ -89,8 +89,15 @@ export const TopBar: React.FC = () => {
         />
       )}
 
-      {/* Primary Sticky Top Bar */}
-      <header className="sticky top-0 z-40 bg-[#0A0714]/85 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-4 py-2.5 pt-[max(env(safe-area-inset-top),0.75rem)] transition-all">
+      {/* Apple Dynamic Island (Positioned at Physical iOS Island Cutout) */}
+      <AppleDynamicIsland
+        onOpenUserSwitcher={() => setShowUserSwitcher(true)}
+        onOpenShareModal={() => setShowShareModal(true)}
+        onOpenAlliesDossier={() => setShowAlliesDossier(true)}
+      />
+
+      {/* Primary Sticky Top Bar with iOS Dynamic Island Clearance */}
+      <header className="sticky top-0 z-40 bg-[#0A0714]/85 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-4 py-2.5 pt-[max(env(safe-area-inset-top,44px),2.75rem)] transition-all">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           {/* Logo & Hunter System Badge */}
           <div
@@ -188,13 +195,6 @@ export const TopBar: React.FC = () => {
             </button>
           </div>
         </div>
-
-        {/* Dynamic Island Capsule */}
-        <AppleDynamicIsland
-          onOpenUserSwitcher={() => setShowUserSwitcher(true)}
-          onOpenShareModal={() => setShowShareModal(true)}
-          onOpenAlliesDossier={() => setShowAlliesDossier(true)}
-        />
       </header>
 
       {/* Notifications Drawer */}
